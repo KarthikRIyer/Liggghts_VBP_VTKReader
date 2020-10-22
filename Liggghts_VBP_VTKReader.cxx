@@ -8,6 +8,10 @@
 #include <set>
 #include <map>
 
+#include "matplotlibcpp.h"
+
+namespace plt = matplotlibcpp;
+
 inline int getBin(double lo, double val, double increment) {
     return std::floor((val - lo) / increment);
 }
@@ -153,6 +157,21 @@ int main(int argc, char *argv[]) {
             std::cout << "\n";
         }
         std::cout << "\nOVERALL SEGREGATION INDEX = " << segregationIndex << "\n";
+
+        // Plot fine fraction with distance
+        std::vector<double> dist(particlesMassFractionBin.size(), 0);
+        std::vector<double> fineMassFraction(particlesMassFractionBin.size(), 0);
+        for (int i = 0; i < particlesMassFractionBin.size(); ++i) {
+            dist[i] = (i + 0.5) * zIncrement;
+            fineMassFraction[i] = particlesMassFractionBin[i][0];
+        }
+        plt::figure_size(1200, 800);
+        plt::plot(dist, fineMassFraction);
+        plt::title("DISTANCE FROM BOTTOM vs FINE MASS FRACTION");
+        plt::xlabel("Distance from bottom of packed bed (m)");
+        plt::ylabel("Fine mass fraction");
+        plt::annotate("Overall segregation index = " + std::to_string(segregationIndex), 0.01, 0.9);
+        plt::show();
     }
 
     return EXIT_SUCCESS;
