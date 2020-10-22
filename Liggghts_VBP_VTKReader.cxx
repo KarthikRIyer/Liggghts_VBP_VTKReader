@@ -8,9 +8,9 @@
 #include <set>
 #include <map>
 
-#include "matplotlibcpp.h"
+//#include "matplotlibcpp.h"
 
-namespace plt = matplotlibcpp;
+//namespace plt = matplotlibcpp;
 
 inline int getBin(double lo, double val, double increment) {
     return std::floor((val - lo) / increment);
@@ -165,6 +165,7 @@ int main(int argc, char *argv[]) {
             dist[i] = (i + 0.5) * zIncrement;
             fineMassFraction[i] = particlesMassFractionBin[i][0];
         }
+        /*
         plt::figure_size(1200, 800);
         plt::plot(dist, fineMassFraction);
         plt::title("DISTANCE FROM BOTTOM vs FINE MASS FRACTION");
@@ -172,6 +173,7 @@ int main(int argc, char *argv[]) {
         plt::ylabel("Fine mass fraction");
         plt::annotate("Overall segregation index = " + std::to_string(segregationIndex), 0.01, 0.9);
         plt::show();
+         */
     }
 
     return EXIT_SUCCESS;
