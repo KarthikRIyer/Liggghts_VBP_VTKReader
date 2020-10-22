@@ -12,6 +12,22 @@ inline int getBin(double lo, double val, double increment) {
     return std::floor((val - lo) / increment);
 }
 
+struct Particle {
+    bool operator()(const Particle &lhs, const Particle &rhs) const {
+        return lhs.radius < rhs.radius;
+    }
+
+    bool operator<(const Particle &p) const {
+        return this->radius < p.radius;
+    }
+
+    Particle(double radius, double mass) : radius(radius), mass(mass) {}
+
+    Particle() {};
+    double radius = 0;
+    double mass = 0;
+};
+
 int main(int argc, char *argv[]) {
     // Ensure a filename was specified
     if (argc != 2) {
@@ -48,8 +64,10 @@ int main(int argc, char *argv[]) {
         double topZRadius;
         double bottomZ = VTK_DOUBLE_MAX;
         double bottomZRadius;
-        std::set<double> radii;
-        std::map<double, int> radiiIndexMap;
+        std::set<Particle, Particle> particleSet;
+        std::map<Particle, int, Particle> particleIndexMap;
+        std::map<int, Particle> particleMap;
+        int sliceCount = 10;
 
         std::cout << "output has " << output->GetNumberOfPoints() << " points." << std::endl;
         for (vtkIdType i = 0; i < output->GetNumberOfPoints(); ++i) {
@@ -57,8 +75,8 @@ int main(int argc, char *argv[]) {
             //forceData->GetTupleValue(int(i), force);
             //omegaData->GetTupleValue(int(i), omega);
             radius = radiusData->GetValue(i);
-            radii.insert(radius);
-            //mass = massData->GetValue(i);
+            mass = massData->GetValue(i);
+            particleSet.insert(Particle(radius, mass));
             output->GetPoint(i, p);
             if (p[2] > topZ) {
                 topZ = p[2];
@@ -80,37 +98,61 @@ int main(int argc, char *argv[]) {
         }
         bottomZ -= bottomZRadius;
         topZ += topZRadius;
-        double zIncrement = (topZ - bottomZ) / 10.0;
+        double zIncrement = (topZ - bottomZ) / sliceCount;
 
-        std::vector<long long> row(radii.size(), 0);
-        std::vector<std::vector<long long >> particlesBin(10, row);
-        int radiiIndex = 0;
-        for (double it : radii) {
-            radiiIndexMap[it] = radiiIndex++;
+        std::vector<std::vector<long long >> particlesBin(sliceCount, std::vector<long long>(particleSet.size(), 0));
+        std::vector<std::vector<double >> particlesMassBin(sliceCount, std::vector<double>(particleSet.size(), 0));
+        std::vector<std::vector<double >> particlesMassFractionBin(sliceCount,
+                                                                   std::vector<double>(particleSet.size(), 0));
+        int particleIndex = 0;
+        for (Particle particle : particleSet) {
+            particleMap[particleIndex] = particle;
+            particleIndexMap[particle] = particleIndex;
+            particleIndex++;
         }
 
         for (vtkIdType i = 0; i < output->GetNumberOfPoints(); ++i) {
             output->GetPoint(i, p);
             radius = radiusData->GetValue(i);
+            mass = massData->GetValue(i);
             int bin = getBin(bottomZ, p[2], zIncrement);
-            int sizeType = radiiIndexMap[radius];
+            int sizeType = particleIndexMap[Particle(radius, mass)];
             particlesBin[bin][sizeType]++;
         }
 
+        double segregationIndex = 0;
+
+        for (int i = 0; i < particlesBin.size(); ++i) {
+            double totalMass = 0;
+            for (int j = 0; j < particlesMassBin[i].size(); ++j) {
+                particlesMassBin[i][j] = particlesBin[i][j] * particleMap[j].mass;
+                totalMass += particlesMassBin[i][j];
+            }
+            for (int j = 0; j < particlesMassFractionBin[i].size(); ++j) {
+                particlesMassFractionBin[i][j] = particlesMassBin[i][j] / totalMass;
+            }
+            segregationIndex += (particlesMassFractionBin[i][0] - 1.0) * (particlesMassFractionBin[i][0] - 1.0);
+        }
+        segregationIndex /= particlesBin.size();
+        segregationIndex = std::sqrt(segregationIndex);
+
         std::cout << "\nPARTICLE TYPES:\n";
 
-        for (auto &it : radiiIndexMap) {
-            std::cout << "Type " << it.second << " --> Radius = " << it.first << "\n";
+        for (auto &it : particleIndexMap) {
+            std::cout << "Type " << it.second << " --> Radius = " << it.first.radius << "; Mass = " << it.first.mass
+                      << "\n";
         }
 
         std::cout << "\nPARTICLE COUNT: \n";
-        for (int i = 9; i >= 0; --i) {
-            std::cout << "Bin " << i << " : ";
+        for (int i = sliceCount - 1; i >= 0; --i) {
+            std::cout << "Bin " << i << " : \n";
             for (int j = 0; j < particlesBin[i].size(); ++j) {
-                std::cout << "Type " << j << " = " << particlesBin[i][j] << " ; ";
+                std::cout << "Type " << j << "; Count = " << particlesBin[i][j] << " ; Slice Mass Fraction = "
+                          << particlesMassFractionBin[i][j] << " ;\n";
             }
             std::cout << "\n";
         }
+        std::cout << "\nOVERALL SEGREGATION INDEX = " << segregationIndex << "\n";
     }
 
     return EXIT_SUCCESS;
