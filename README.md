@@ -38,7 +38,7 @@ This will write the output to files in a new directory `_post_processed` in the 
 ```
 
 You can use the following flags to limit your output:
-```
+```console
 -notall This will process only the first and last files (according to the index)
 -onlylast This will process only the last file (according to the index)
 ```
