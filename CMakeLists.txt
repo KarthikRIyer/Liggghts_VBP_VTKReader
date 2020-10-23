@@ -6,7 +6,7 @@ find_package(VTK COMPONENTS
   vtkCommonCore
   vtkCommonDataModel
   vtkIOLegacy QUIET)
-
+find_package(Python2 COMPONENTS Development)
 if (NOT VTK_FOUND)
   message("Skipping Liggghts_VBP_VTKReader: ${VTK_NOT_FOUND_MESSAGE}")
   return ()
@@ -17,12 +17,20 @@ if (VTK_VERSION VERSION_LESS "8.90.0")
   include(${VTK_USE_FILE})
   add_executable(Liggghts_VBP_VTKReader MACOSX_BUNDLE Liggghts_VBP_VTKReader.cxx)
   target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES} )
-  target_include_directories(Liggghts_VBP_VTKReader PRIVATE)
+#  target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES} Python2::Python)
+#  target_include_directories(Liggghts_VBP_VTKReader PRIVATE ${Python2_INCLUDE_DIRS})
+  if (WIN32)
+    target_include_directories(Liggghts_VBP_VTKReader PRIVATE include)
+  endif (WIN32)
 else ()
   # include all components
-  add_executable(Liggghts_VBP_VTKReader MACOSX_BUNDLE Liggghts_VBP_VTKReader.cxx)
+  add_executable(Liggghts_VBP_VTKReader MACOSX_BUNDLE Liggghts_VBP_VTKReader.cxx include/dirent.h)
   target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES})
-  target_include_directories(Liggghts_VBP_VTKReader PRIVATE )
+#  target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES} Python2::Python)
+#  target_include_directories(Liggghts_VBP_VTKReader PRIVATE ${Python2_INCLUDE_DIRS})
+  if (WIN32)
+    target_include_directories(Liggghts_VBP_VTKReader PRIVATE include)
+  endif (WIN32)
   # vtk_module_autoinit is needed
   vtk_module_autoinit(
     TARGETS Liggghts_VBP_VTKReader
