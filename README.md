@@ -14,6 +14,8 @@ sudo apt-get install python-matplotlib python2.7-dev
 
 From root directory of the project:
 ```console
+git clone https://github.com/KarthikRIyer/Liggghts_VBP_VTKReader
+cd Liggghts_VBP_VTKReader
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -24,6 +26,19 @@ make
 ## How to run
 
 From build directory:
+
+This will write the output to a file in the same directory as the vtk file with the extension `.postprocessed`
 ```console
 ./Liggghts_VBP_VTKReader <path to vtk file>
+```
+
+This will write the output to files in a new directory `_post_processed` in the input directory.
+```console
+./Liggghts_VBP_VTKReader <path to directory with the vtk files>
+```
+
+You can use the following flags to limit your output:
+```
+-notall This will process only the first and last files (according to the index)
+-onlylast This will process only the last file (according to the index)
 ```
