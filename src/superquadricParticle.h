@@ -17,6 +17,7 @@ public:
               shapey(shapey), shapez(shapez), quat1(quat1), quat2(quat2), quat3(quat3), quat4(quat4) {
         vol = shapex * shapey * shapez * four_by_three_pi;
 
+        /*Quaternion to rotation matrix from: https://link.springer.com/article/10.1007/s40571-016-0131-6*/
         double a1 = 1 - 2.0 * (quat3 * quat3 + quat4 * quat4);
         double b1 = 2.0 * (quat2 * quat3 - quat1 * quat4);
         double c1 = 2.0 * (quat2 * quat4 - quat1 * quat3);
@@ -54,6 +55,7 @@ public:
                                        ((a1 * c3 - a3 * c1) * (a2 * c1 - a1 * c2) * one_by_b_squared) +
                                        ((a3 * b1 - a1 * b3) * (a1 * b2 - a2 * b1) * one_by_c_squared));
         double A = (p * (q * r - f * f)) - (h * (h * r - f * g)) + (g * (h * f - g * q));
+        /*Max Z from : https://math.stackexchange.com/questions/3610652/find-x-y-z-maximum-and-minimum-points-of-ellipsoid*/
         zDiff = std::sqrt((p * q - h * h) / A);
     }
 
