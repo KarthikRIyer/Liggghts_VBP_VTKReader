@@ -16,6 +16,11 @@
 #ifdef __unix__
 
 #include <dirent.h>
+#include <memory>
+#include "particle.h"
+#include "superquadricParticle.h"
+#include "sphericalParticle.h"
+
 
 #endif
 //#include "matplotlibcpp.h"
@@ -26,21 +31,21 @@ inline int getBin(double lo, double val, double increment) {
     return std::floor((val - lo) / increment);
 }
 
-struct Particle {
-    bool operator()(const Particle &lhs, const Particle &rhs) const {
-        return lhs.radius < rhs.radius;
-    }
-
-    bool operator<(const Particle &p) const {
-        return this->radius < p.radius;
-    }
-
-    Particle(double radius, double mass) : radius(radius), mass(mass) {}
-
-    Particle() {};
-    double radius = 0;
-    double mass = 0;
-};
+//struct Particle {
+//    bool operator()(const Particle &lhs, const Particle &rhs) const {
+//        return lhs.radius < rhs.radius;
+//    }
+//
+//    bool operator<(const Particle &p) const {
+//        return this->radius < p.radius;
+//    }
+//
+//    Particle(double radius, double mass) : radius(radius), mass(mass) {}
+//
+//    Particle() {};
+//    double radius = 0;
+//    double mass = 0;
+//};
 
 int isFile(const std::string &path) {
     DIR *directory = opendir(path.c_str());
@@ -69,6 +74,7 @@ int main(int argc, char *argv[]) {
     std::map<std::string, unsigned int> flagDispatchTable{
             {"-notall",   1u << 1u},
             {"-onlylast", 1u << 2u},
+            {"-superq",   1u << 3u}
     };
     unsigned int flags = 0;
 
@@ -128,9 +134,9 @@ int main(int argc, char *argv[]) {
         filesVector.push_back(lastFile);
     }
     std::cout << "File count = " << filesVector.size() << "\n";
-    int i = 0;
+    int fc = 0;
     for (auto &filePath : filesVector) {
-        std::cout << ++i << "\n";
+        std::cout << ++fc << "\n";
         std::string postProcessedFileName;
         if (!newDirName.empty()) {
 #if __unix__
@@ -155,50 +161,88 @@ int main(int argc, char *argv[]) {
 
         // All of the standard data types can be checked and obtained like this:
         if (reader->IsFilePolyData()) {
-            //std::cout << "==================================================\n";
-            //std::cout << "\n" << filePath << "\n";
-            //std::cout << "output is a polydata" << std::endl;
             postProcessedFile << "output is a polydata\n";
             vtkPolyData *output = reader->GetPolyDataOutput();
             vtkPointData *pd = output->GetPointData();
+
+            bool isSuperQ = flags & flagDispatchTable["-superq"];
+
+            /*
             vtkDoubleArray *velData = vtkDoubleArray::SafeDownCast(pd->GetArray("v"));
             vtkDoubleArray *forceData = vtkDoubleArray::SafeDownCast(pd->GetArray("f"));
             vtkDoubleArray *omegaData = vtkDoubleArray::SafeDownCast(pd->GetArray("omega"));
-            vtkDoubleArray *radiusData = vtkDoubleArray::SafeDownCast(pd->GetArray("radius"));
+             */
+
+            vtkDoubleArray *radiusData;
+            vtkDoubleArray *shapeXData;
+            vtkDoubleArray *shapeYData;
+            vtkDoubleArray *shapeZData;
+            vtkDoubleArray *quat1Data;
+            vtkDoubleArray *quat2Data;
+            vtkDoubleArray *quat3Data;
+            vtkDoubleArray *quat4Data;
+            if (isSuperQ) {
+                shapeXData = vtkDoubleArray::SafeDownCast(pd->GetArray("shapex"));
+                shapeYData = vtkDoubleArray::SafeDownCast(pd->GetArray("shapey"));
+                shapeZData = vtkDoubleArray::SafeDownCast(pd->GetArray("shapez"));
+                quat1Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat1"));
+                quat2Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat2"));
+                quat3Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat3"));
+                quat4Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat4"));
+            } else {
+                radiusData = vtkDoubleArray::SafeDownCast(pd->GetArray("radius"));
+            }
             vtkDoubleArray *massData = vtkDoubleArray::SafeDownCast(pd->GetArray("mass"));
+
+            /*
             double velocity[3];
             double omega[3];
             double force[3];
+             */
             double radius;
+            double shapex, shapey, shapez;
+            double quat1, quat2, quat3, quat4;
             double mass;
             double p[3];
             double topZ = VTK_DOUBLE_MIN;
-            double topZRadius;
             double bottomZ = VTK_DOUBLE_MAX;
-            double bottomZRadius;
-            std::set<Particle, Particle> particleSet;
-            std::map<Particle, int, Particle> particleIndexMap;
-            std::map<int, Particle> particleMap;
+            std::set<std::pair<double, double>> particleVolumeMassSet;
+            std::map<std::pair<double, double>, int> particleVolumeMassIndexMap;
+            std::map<int, std::pair<double, double>> particleIndexVolumeMassMap;
             int sliceCount = 10;
+            std::vector<std::shared_ptr<Particle>> particleVector(output->GetNumberOfPoints(), nullptr);
 
-            //std::cout << "output has " << output->GetNumberOfPoints() << " points." << std::endl;
             postProcessedFile << "output has " << output->GetNumberOfPoints() << " points.\n";
             for (vtkIdType i = 0; i < output->GetNumberOfPoints(); ++i) {
                 //velData->GetTupleValue(int(i), velocity);
                 //forceData->GetTupleValue(int(i), force);
                 //omegaData->GetTupleValue(int(i), omega);
-                radius = radiusData->GetValue(i);
                 mass = massData->GetValue(i);
-                particleSet.insert(Particle(radius, mass));
                 output->GetPoint(i, p);
-                if (p[2] > topZ) {
-                    topZ = p[2];
-                    topZRadius = radius;
+                std::shared_ptr<Particle> particlePtr = nullptr;
+                if (isSuperQ) {
+                    shapex = shapeXData->GetValue(i);
+                    shapey = shapeYData->GetValue(i);
+                    shapez = shapeZData->GetValue(i);
+                    if (quat1Data != nullptr)
+                        quat1 = quat1Data->GetValue(i);
+                    if (quat2Data != nullptr)
+                        quat2 = quat2Data->GetValue(i);
+                    if (quat3Data != nullptr)
+                        quat3 = quat3Data->GetValue(i);
+                    if (quat4Data != nullptr)
+                        quat4 = quat4Data->GetValue(i);
+                    particlePtr = std::make_shared<SuperquadricParticle>(mass, shapex, shapey, shapez, p[0], p[1], p[2],
+                                                                         quat1, quat2, quat3, quat4);
+                } else {
+                    radius = radiusData->GetValue(i);
+                    particlePtr = std::make_shared<SphericalParticle>(mass, radius, p[0], p[1], p[2]);
                 }
-                if (p[2] < bottomZ) {
-                    bottomZ = p[2];
-                    bottomZRadius = radius;
-                }
+                particleVolumeMassSet.insert({particlePtr->volume(), particlePtr->mass});
+
+                topZ = std::max(topZ, particlePtr->getTopZ());
+                bottomZ = std::min(bottomZ, particlePtr->getBottomZ());
+                particleVector[int(i)] = particlePtr;
                 /*
                 std::cout << "Point " << i << " : " << p[0] << " " << p[1] << " " << p[2] << "\n";
                 std::cout << "Velocity " << i << " : " << velocity[0] << " " << velocity[1] << " " << velocity[2] << "\n";
@@ -209,37 +253,36 @@ int main(int argc, char *argv[]) {
                 std::cout << "\n";
                  */
             }
-            bottomZ -= bottomZRadius;
-            topZ += topZRadius;
+
             double zIncrement = (topZ - bottomZ) / sliceCount;
 
             std::vector<std::vector<long long >> particlesBin(sliceCount,
-                                                              std::vector<long long>(particleSet.size(), 0));
-            std::vector<std::vector<double >> particlesMassBin(sliceCount, std::vector<double>(particleSet.size(), 0));
+                                                              std::vector<long long>(particleVolumeMassSet.size(), 0));
+            std::vector<std::vector<double >> particlesMassBin(sliceCount,
+                                                               std::vector<double>(particleVolumeMassSet.size(), 0));
             std::vector<std::vector<double >> particlesMassFractionBin(sliceCount,
-                                                                       std::vector<double>(particleSet.size(), 0));
+                                                                       std::vector<double>(particleVolumeMassSet.size(),
+                                                                                           0));
             int particleIndex = 0;
-            for (Particle particle : particleSet) {
-                particleMap[particleIndex] = particle;
-                particleIndexMap[particle] = particleIndex;
+            for (std::pair<double, double> particleVolMass : particleVolumeMassSet) {
+                particleVolumeMassIndexMap[particleVolMass] = particleIndex;
+                particleIndexVolumeMassMap[particleIndex] = particleVolMass;
                 particleIndex++;
             }
-
-            for (vtkIdType i = 0; i < output->GetNumberOfPoints(); ++i) {
-                output->GetPoint(i, p);
-                radius = radiusData->GetValue(i);
-                mass = massData->GetValue(i);
-                int bin = getBin(bottomZ, p[2], zIncrement);
-                int sizeType = particleIndexMap[Particle(radius, mass)];
+            std::cout << particleVector.size() << "\n";
+            int pc = 0;
+//            std::cout << particleVector[97492]->z << "\n";
+            for (auto &particle : particleVector) {
+                int bin = getBin(bottomZ, particle->z, zIncrement);
+                int sizeType = particleVolumeMassIndexMap[{particle->volume(), particle->mass}];
                 particlesBin[bin][sizeType]++;
             }
-
             double segregationIndex = 0;
 
             for (int i = 0; i < particlesBin.size(); ++i) {
                 double totalMass = 0;
                 for (int j = 0; j < particlesMassBin[i].size(); ++j) {
-                    particlesMassBin[i][j] = particlesBin[i][j] * particleMap[j].mass;
+                    particlesMassBin[i][j] = particlesBin[i][j] * particleIndexVolumeMassMap[j].second;
                     totalMass += particlesMassBin[i][j];
                 }
                 for (int j = 0; j < particlesMassFractionBin[i].size(); ++j) {
@@ -250,33 +293,26 @@ int main(int argc, char *argv[]) {
             segregationIndex /= particlesBin.size();
             segregationIndex = std::sqrt(segregationIndex);
 
-            //std::cout << "\nPARTICLE TYPES:\n";
+
             postProcessedFile << "\nPARTICLE TYPES:\n";
 
-            for (auto &it : particleIndexMap) {
-                //std::cout << "Type " << it.second << " --> Radius = " << it.first.radius << "; Mass = " << it.first.mass
-                //         << "\n";
-                postProcessedFile << "Type " << it.second << " --> Radius = " << it.first.radius << "; Mass = "
-                                  << it.first.mass
+            for (auto &it : particleIndexVolumeMassMap) {
+                postProcessedFile << "Type " << it.first << " --> Volume = " << it.second.first << "; Mass = "
+                                  << it.second.second
                                   << "\n";
             }
 
-            //std::cout << "\nPARTICLE COUNT: \n";
             postProcessedFile << "\nPARTICLE COUNT: \n";
             for (int i = sliceCount - 1; i >= 0; --i) {
-                //std::cout << "Bin " << i << " : \n";
                 postProcessedFile << "Bin " << i << " : \n";
                 for (int j = 0; j < particlesBin[i].size(); ++j) {
-                    //std::cout << "Type " << j << "; Count = " << particlesBin[i][j] << " ; Slice Mass Fraction = "
-                    //         << particlesMassFractionBin[i][j] << " ;\n";
                     postProcessedFile << "Type " << j << "; Count = " << particlesBin[i][j]
                                       << " ; Slice Mass Fraction = "
                                       << particlesMassFractionBin[i][j] << " ;\n";
                 }
-                //std::cout << "\n";
                 postProcessedFile << "\n";
             }
-            //std::cout << "\nOVERALL SEGREGATION INDEX = " << segregationIndex << "\n";
+
             postProcessedFile << "\nOVERALL SEGREGATION INDEX = " << segregationIndex << "\n";
 
             // Plot fine fraction with distance
@@ -295,7 +331,6 @@ int main(int argc, char *argv[]) {
             plt::annotate("Overall segregation index = " + std::to_string(segregationIndex), 0.01, 0.9);
             plt::show();
              */
-            // std::cout << "==================================================\n";
         }
         if (postProcessedFile.is_open())
             postProcessedFile.close();

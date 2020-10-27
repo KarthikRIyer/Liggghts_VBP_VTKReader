@@ -12,10 +12,15 @@ if (NOT VTK_FOUND)
   return ()
 endif()
 message (STATUS "VTK_VERSION: ${VTK_VERSION}")
+
+set(SOURCE_FILES
+        src/Liggghts_VBP_VTKReader.cxx
+        src/sphericalParticle.cpp src/superquadricParticle.cpp src/particle.cpp)
+
 if (VTK_VERSION VERSION_LESS "8.90.0")
   # old system
   include(${VTK_USE_FILE})
-  add_executable(Liggghts_VBP_VTKReader MACOSX_BUNDLE Liggghts_VBP_VTKReader.cxx)
+  add_executable(Liggghts_VBP_VTKReader MACOSX_BUNDLE ${SOURCE_FILES})
   target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES} )
 #  target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES} Python2::Python)
 #  target_include_directories(Liggghts_VBP_VTKReader PRIVATE ${Python2_INCLUDE_DIRS})
@@ -24,7 +29,7 @@ if (VTK_VERSION VERSION_LESS "8.90.0")
   endif (WIN32)
 else ()
   # include all components
-  add_executable(Liggghts_VBP_VTKReader MACOSX_BUNDLE Liggghts_VBP_VTKReader.cxx include/dirent.h)
+  add_executable(Liggghts_VBP_VTKReader MACOSX_BUNDLE ${SOURCE_FILES})
   target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES})
 #  target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES} Python2::Python)
 #  target_include_directories(Liggghts_VBP_VTKReader PRIVATE ${Python2_INCLUDE_DIRS})
