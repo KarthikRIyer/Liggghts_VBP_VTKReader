@@ -224,14 +224,14 @@ int main(int argc, char *argv[]) {
                     shapex = shapeXData->GetValue(i);
                     shapey = shapeYData->GetValue(i);
                     shapez = shapeZData->GetValue(i);
-                    if (quat1Data != nullptr)
-                        quat1 = quat1Data->GetValue(i);
-                    if (quat2Data != nullptr)
-                        quat2 = quat2Data->GetValue(i);
-                    if (quat3Data != nullptr)
-                        quat3 = quat3Data->GetValue(i);
-                    if (quat4Data != nullptr)
-                        quat4 = quat4Data->GetValue(i);
+                    if (quat1Data != nullptr) quat1 = quat1Data->GetValue(i);
+                    else quat1 = 1;
+                    if (quat2Data != nullptr) quat2 = quat2Data->GetValue(i);
+                    else quat2 = 0;
+                    if (quat3Data != nullptr) quat3 = quat3Data->GetValue(i);
+                    else quat3 = 0;
+                    if (quat4Data != nullptr) quat4 = quat4Data->GetValue(i);
+                    else quat4 = 0;
                     particlePtr = std::make_shared<SuperquadricParticle>(mass, shapex, shapey, shapez, p[0], p[1], p[2],
                                                                          quat1, quat2, quat3, quat4);
                 } else {
