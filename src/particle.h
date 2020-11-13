@@ -12,7 +12,8 @@ public:
 
     Particle() {}
 
-    Particle(double mass, double x, double y, double z) : mass(mass), x(x), y(y), z(z) {}
+    Particle(double mass, double x, double y, double z, double vx=0, double vy=0, double vz=0) : mass(mass), x(x), y(y), z(z),
+                                                                                           vx(vx), vy(vy), vz(vz) {}
 
     virtual double getTopZ();
 
@@ -25,6 +26,9 @@ public:
     double x = 0;
     double y = 0;
     double z = 0;
+    double vx = 0;
+    double vy = 0;
+    double vz = 0;
 };
 
 #endif //LIGGGHTS_VBP_VTKREADER_PARTICLE_H

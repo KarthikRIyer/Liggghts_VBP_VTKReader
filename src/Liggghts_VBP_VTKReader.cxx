@@ -24,7 +24,7 @@
 
 #endif
 //#include "matplotlibcpp.h"
-
+//
 //namespace plt = matplotlibcpp;
 
 inline int getBin(double lo, double val, double increment) {
@@ -138,20 +138,28 @@ int main(int argc, char *argv[]) {
     for (auto &filePath : filesVector) {
         std::cout << ++fc << "\n";
         std::string postProcessedFileName;
+        std::string postProcessedVelFileName;
         if (!newDirName.empty()) {
 #if __unix__
             postProcessedFileName = newDirName + filePath.substr(filePath.rfind('/') + 1) + ".postprocessed";
+            postProcessedVelFileName = newDirName + filePath.substr(filePath.rfind('/') + 1) + ".vel";
 //            std::cout << postProcessedFileName << "\nHola\n";
 #endif
 #ifdef _WIN32
             postProcessedFileName = newDirName + filePath.substr(filePath.rfind('\\') + 1) + ".postprocessed";
+            postProcessedVelFileName = newDirName + filePath.substr(filePath.rfind('\\') + 1) + ".vel";
 #endif
         } else {
             postProcessedFileName = filePath + ".postprocessed";
+            postProcessedVelFileName = filePath + ".vel";
         }
         ofstream postProcessedFile;
         if (!postProcessedFileName.empty()) {
             postProcessedFile.open(postProcessedFileName.c_str());
+        }
+        ofstream postProcessedVelFile;
+        if (!postProcessedVelFileName.empty()) {
+            postProcessedVelFile.open(postProcessedVelFileName.c_str());
         }
         // Get all data from the file
         vtkSmartPointer<vtkGenericDataObjectReader> reader =
@@ -167,8 +175,9 @@ int main(int argc, char *argv[]) {
 
             bool isSuperQ = flags & flagDispatchTable["-superq"];
 
-            /*
+
             vtkDoubleArray *velData = vtkDoubleArray::SafeDownCast(pd->GetArray("v"));
+            /*
             vtkDoubleArray *forceData = vtkDoubleArray::SafeDownCast(pd->GetArray("f"));
             vtkDoubleArray *omegaData = vtkDoubleArray::SafeDownCast(pd->GetArray("omega"));
              */
@@ -194,8 +203,9 @@ int main(int argc, char *argv[]) {
             }
             vtkDoubleArray *massData = vtkDoubleArray::SafeDownCast(pd->GetArray("mass"));
 
-            /*
+
             double velocity[3];
+            /*
             double omega[3];
             double force[3];
              */
@@ -214,7 +224,7 @@ int main(int argc, char *argv[]) {
 
             postProcessedFile << "output has " << output->GetNumberOfPoints() << " points.\n";
             for (vtkIdType i = 0; i < output->GetNumberOfPoints(); ++i) {
-                //velData->GetTupleValue(int(i), velocity);
+                velData->GetTupleValue(int(i), velocity);
                 //forceData->GetTupleValue(int(i), force);
                 //omegaData->GetTupleValue(int(i), omega);
                 mass = massData->GetValue(i);
@@ -233,10 +243,12 @@ int main(int argc, char *argv[]) {
                     if (quat4Data != nullptr) quat4 = quat4Data->GetValue(i);
                     else quat4 = 0;
                     particlePtr = std::make_shared<SuperquadricParticle>(mass, shapex, shapey, shapez, p[0], p[1], p[2],
-                                                                         quat1, quat2, quat3, quat4);
+                                                                         quat1, quat2, quat3, quat4, velocity[0],
+                                                                         velocity[1], velocity[2]);
                 } else {
                     radius = radiusData->GetValue(i);
-                    particlePtr = std::make_shared<SphericalParticle>(mass, radius, p[0], p[1], p[2]);
+                    particlePtr = std::make_shared<SphericalParticle>(mass, radius, p[0], p[1], p[2], velocity[0],
+                                                                      velocity[1], velocity[2]);
                 }
                 particleVolumeMassSet.insert({particlePtr->volume(), particlePtr->mass});
 
@@ -322,15 +334,37 @@ int main(int argc, char *argv[]) {
                 dist[i] = (i + 0.5) * zIncrement;
                 fineMassFraction[i] = particlesMassFractionBin[i][0];
             }
-            /*
-            plt::figure_size(1200, 800);
-            plt::plot(dist, fineMassFraction);
-            plt::title("DISTANCE FROM BOTTOM vs FINE MASS FRACTION");
-            plt::xlabel("Distance from bottom of packed bed (m)");
-            plt::ylabel("Fine mass fraction");
-            plt::annotate("Overall segregation index = " + std::to_string(segregationIndex), 0.01, 0.9);
-            plt::show();
-             */
+            std::vector<double> x, y, z, u, v, w;
+            double sum_vx, sum_vy, sum_vz;
+            sum_vx = sum_vy = sum_vz = 0;
+            for (auto &i : particleVector) {
+                sum_vx += i->vx;
+                sum_vy += i->vy;
+                sum_vz += i->vz;
+                if (i->y <= 6.0 / 1000.0 && i->y >= -6.0 / 1000.0) {
+                    x.push_back(i->x);
+                    y.push_back(i->y);
+                    z.push_back(i->z);
+                    u.push_back(i->vx);
+                    v.push_back(i->vy);
+                    w.push_back(i->vz);
+                    postProcessedVelFile << i->x << " " << i->y << " " << i->z << " " << i->vx << " " << i->vy << " "
+                                         << i->vz << "\n";
+                }
+            }
+            postProcessedVelFile.close();
+            double v_avg = sqrt(sum_vx * sum_vx + sum_vy * sum_vy + sum_vz * sum_vz) / particleVector.size();
+            postProcessedFile << "\nAVERAGE VELOCITY = " << v_avg << "\n";
+
+
+//            plt::figure_size(1200, 800);
+//            plt::plot(dist, fineMassFraction);
+//            plt::title("DISTANCE FROM BOTTOM vs FINE MASS FRACTION");
+//            plt::xlabel("Distance from bottom of packed bed (m)");
+//            plt::ylabel("Fine mass fraction");
+//            plt::annotate("Overall segregation index = " + std::to_string(segregationIndex), 0.01, 0.9);
+//            plt::quiver(x,z,u,w);
+//            plt::show();
         }
         if (postProcessedFile.is_open())
             postProcessedFile.close();

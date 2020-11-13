@@ -10,8 +10,9 @@ class SphericalParticle : public Particle {
 public:
     SphericalParticle() : Particle() {}
 
-    SphericalParticle(double mass, double radius, double x, double y, double z) : radius(radius),
-                                                                                  Particle(mass, x, y, z) {
+    SphericalParticle(double mass, double radius, double x, double y, double z, double vx = 0, double vy = 0,
+                      double vz = 0) : radius(radius),
+                                       Particle(mass, x, y, z, vx, vy, vz) {
         vol = radius * radius * radius * four_by_three_pi;
     }
 

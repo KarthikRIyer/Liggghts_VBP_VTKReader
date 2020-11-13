@@ -12,8 +12,9 @@ public:
     SuperquadricParticle() : Particle() {}
 
     SuperquadricParticle(double mass, double shapex, double shapey, double shapez, double x, double y, double z,
-                         double quat1, double quat2, double quat3, double quat4)
-            : Particle(mass, x, y, z), shapex(shapex),
+                         double quat1, double quat2, double quat3, double quat4, double vx = 0, double vy = 0,
+                         double vz = 0)
+            : Particle(mass, x, y, z, vx, vy, vz), shapex(shapex),
               shapey(shapey), shapez(shapez), quat1(quat1), quat2(quat2), quat3(quat3), quat4(quat4) {
         vol = shapex * shapey * shapez * four_by_three_pi;
 
