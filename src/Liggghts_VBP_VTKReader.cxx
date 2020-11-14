@@ -300,7 +300,8 @@ int main(int argc, char *argv[]) {
                 for (int j = 0; j < particlesMassFractionBin[i].size(); ++j) {
                     particlesMassFractionBin[i][j] = particlesMassBin[i][j] / totalMass;
                 }
-                segregationIndex += (particlesMassFractionBin[i][0] - 1.0) * (particlesMassFractionBin[i][0] - 1.0);
+                segregationIndex +=
+                        (particlesMassFractionBin[i][0] * 2.0 - 1.0) * (particlesMassFractionBin[i][0] * 2.0 - 1.0);
             }
             segregationIndex /= particlesBin.size();
             segregationIndex = std::sqrt(segregationIndex);
@@ -342,14 +343,14 @@ int main(int argc, char *argv[]) {
                 sum_vy += i->vy;
                 sum_vz += i->vz;
 //                if (i->y <= 6.0 / 1000.0 && i->y >= -6.0 / 1000.0) {
-                    x.push_back(i->x);
-                    y.push_back(i->y);
-                    z.push_back(i->z);
-                    u.push_back(i->vx);
-                    v.push_back(i->vy);
-                    w.push_back(i->vz);
-                    postProcessedVelFile << i->x << " " << i->y << " " << i->z << " " << i->vx << " " << i->vy << " "
-                                         << i->vz << "\n";
+                x.push_back(i->x);
+                y.push_back(i->y);
+                z.push_back(i->z);
+                u.push_back(i->vx);
+                v.push_back(i->vy);
+                w.push_back(i->vz);
+                postProcessedVelFile << i->x << " " << i->y << " " << i->z << " " << i->vx << " " << i->vy << " "
+                                     << i->vz << "\n";
 //                }
             }
             postProcessedVelFile.close();
