@@ -341,7 +341,7 @@ int main(int argc, char *argv[]) {
                 sum_vx += i->vx;
                 sum_vy += i->vy;
                 sum_vz += i->vz;
-                if (i->y <= 6.0 / 1000.0 && i->y >= -6.0 / 1000.0) {
+//                if (i->y <= 6.0 / 1000.0 && i->y >= -6.0 / 1000.0) {
                     x.push_back(i->x);
                     y.push_back(i->y);
                     z.push_back(i->z);
@@ -350,7 +350,7 @@ int main(int argc, char *argv[]) {
                     w.push_back(i->vz);
                     postProcessedVelFile << i->x << " " << i->y << " " << i->z << " " << i->vx << " " << i->vy << " "
                                          << i->vz << "\n";
-                }
+//                }
             }
             postProcessedVelFile.close();
             double v_avg = sqrt(sum_vx * sum_vx + sum_vy * sum_vy + sum_vz * sum_vz) / particleVector.size();

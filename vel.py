@@ -26,6 +26,8 @@ def process_file(filepath):
     for line in lines:
         x = line.split()
         x = [float(c) for c in x]
+        if x[1] > 6.0/1000.0 or x[1] < -6.0/1000.0:
+            continue
         px.append(x[0])
         py.append(x[1])
         pz.append(x[2])
@@ -49,6 +51,7 @@ def process_file(filepath):
     cbar.ax.set_ylabel('Velocity projection in X-Z plane', rotation=270)
     ax.set_ylabel('Z')
     ax.set_xlabel('X')
+    plt.title('Velocity field of particles in vertical central slice')
     plt.savefig(filepath + '.png', dpi=fig_dpi, bbox_inches='tight')
     print('Saved file' + filepath + '.png')
     plt.close('all')
