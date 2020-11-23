@@ -41,6 +41,7 @@ You can use the following flags to limit your output:
 ```console
 -notall This will process only the first and last files (according to the index)
 -onlylast This will process only the last file (according to the index)
+-initframe <frame number> This will calculate the bed height for the frame number specified and will consider it for all calculations
 ```
 
 To plot the velocity field of the vertical middle slice of the bed, install matplotlib and run in the root directory of the project:
