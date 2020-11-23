@@ -17,9 +17,11 @@
 
 #include <dirent.h>
 #include <memory>
+#include <cfloat>
 #include "particle.h"
 #include "superquadricParticle.h"
 #include "sphericalParticle.h"
+#include "bedHeight.h"
 
 
 #endif
@@ -29,6 +31,11 @@
 
 inline int getBin(double lo, double val, double increment) {
     return std::floor((val - lo) / increment);
+}
+
+template<typename T>
+inline T clamp(const T &n, const T &lower, const T &upper) {
+    return n <= lower ? lower : n >= upper ? upper : n;
 }
 
 //struct Particle {
@@ -72,18 +79,39 @@ int main(int argc, char *argv[]) {
     std::string inputFilename = argv[1];
 
     std::map<std::string, unsigned int> flagDispatchTable{
-            {"-notall",   1u << 1u},
-            {"-onlylast", 1u << 2u},
-            {"-superq",   1u << 3u}
+            {"-notall",    1u << 1u},
+            {"-onlylast",  1u << 2u},
+            {"-superq",    1u << 3u},
+            {"-initframe", 1u << 4u},
     };
     unsigned int flags = 0;
+    long long init_frame_count = LONG_LONG_MIN;
+    std::string initFilePath = "";
+    double bedBottom = -DBL_MAX;
+    double bedTop = -DBL_MAX;
 
     if (argc > 2) {
         for (int i = 2; i < argc; ++i) {
             std::string flg = argv[i];
-            flags = flags | flagDispatchTable[flg];
+            unsigned int flgVal = flagDispatchTable[flg];
+            if (flgVal == flagDispatchTable["-initframe"]) {
+                try {
+                    if (i >= argc) {
+                        std::cout << "Enter init frame number after -initframe flag!!\n";
+                        exit(0);
+                    }
+                    std::string frame_count = argv[i + 1];
+                    init_frame_count = std::stoll(frame_count);
+                    i++;
+                } catch (...) {
+                    std::cout << "Enter init frame number after -initframe flag!!\n";
+                    exit(0);
+                }
+            }
+            flags = flags | flgVal;
         }
     }
+    std::cout << "init_frame_count " << init_frame_count << "\n";
     std::string newDirName;
     setlocale(LC_ALL, "");
     if (isFile(inputFilename) == 1) {
@@ -115,11 +143,28 @@ int main(int argc, char *argv[]) {
                 if (prospectiveFile.substr(prospectiveFile.rfind('.') + 1) == "vtk" &&
                     prospectiveFile.find("boundingBox") == std::string::npos) {
                     filesVector.push_back(inputFilename + prospectiveFile);
+                    if (initFilePath.empty() && init_frame_count != LONG_LONG_MIN) {
+                        std::string initFile = filesVector.back();
+                        int sIndex = 0;
+                        for (; sIndex < initFile.length(); sIndex++) { if (isdigit(initFile[sIndex])) break; }
+                        initFile = initFile.substr(sIndex, initFile.length() - 1);
+                        long long fn = atoll(initFile.c_str());
+                        if (fn == init_frame_count)
+                            initFilePath = filesVector.back();
+                    }
                 }
             }
         }
-
+        if (!initFilePath.empty() && init_frame_count != LONG_LONG_MIN) {
+            std::pair<double, double> bedLims = getBedHeight(initFilePath, flags & flagDispatchTable["-superq"]);
+            bedBottom = bedLims.first;
+            bedTop = bedLims.second;
+        } else if (initFilePath.empty() && init_frame_count != LONG_LONG_MIN) {
+            std::cout << "Enter correct init frame number!!\n";
+            exit(0);
+        }
     }
+
     std::sort(filesVector.begin(), filesVector.end());
     if (flags & flagDispatchTable["-notall"] && filesVector.size() >= 3) {
         std::string firstFile = filesVector[0];
@@ -252,8 +297,10 @@ int main(int argc, char *argv[]) {
                 }
                 particleVolumeMassSet.insert({particlePtr->volume(), particlePtr->mass});
 
-                topZ = std::max(topZ, particlePtr->getTopZ());
-                bottomZ = std::min(bottomZ, particlePtr->getBottomZ());
+                if (bedTop == -DBL_MAX && bedBottom == -DBL_MAX) {
+                    topZ = std::max(topZ, particlePtr->getTopZ());
+                    bottomZ = std::min(bottomZ, particlePtr->getBottomZ());
+                }
                 particleVector[int(i)] = particlePtr;
                 /*
                 std::cout << "Point " << i << " : " << p[0] << " " << p[1] << " " << p[2] << "\n";
@@ -266,8 +313,18 @@ int main(int argc, char *argv[]) {
                  */
             }
 
-            double zIncrement = (topZ - bottomZ) / sliceCount;
-
+            double zIncrement = 0;
+            if (bedTop == -DBL_MAX && bedBottom == -DBL_MAX)
+                zIncrement = (topZ - bottomZ) / sliceCount;
+            else {
+                topZ = bedTop;
+                bottomZ = bedBottom;
+                zIncrement = (topZ - bottomZ) / sliceCount;
+            }
+            std::cout << "zinc " << zIncrement << "\n";
+//            std::cout << "zinco " << zIncrement << "\n";
+//            std::cout << "zinc " << zIncrement << "\n";
+//            std::cout << "bedH " << bedHeight << "\n";
             std::vector<std::vector<long long >> particlesBin(sliceCount,
                                                               std::vector<long long>(particleVolumeMassSet.size(), 0));
             std::vector<std::vector<double >> particlesMassBin(sliceCount,
@@ -281,11 +338,13 @@ int main(int argc, char *argv[]) {
                 particleIndexVolumeMassMap[particleIndex] = particleVolMass;
                 particleIndex++;
             }
-            std::cout << particleVector.size() << "\n";
+            std::cout << "Particle count: " << particleVector.size() << "\n";
             int pc = 0;
 //            std::cout << particleVector[97492]->z << "\n";
             for (auto &particle : particleVector) {
-                int bin = getBin(bottomZ, particle->z, zIncrement);
+                int binI = getBin(bottomZ, particle->z, zIncrement);
+                int bin = clamp(binI, 0, sliceCount - 1);
+//                std::cout << "binI " << binI << " bin " << bin << "\n";
                 int sizeType = particleVolumeMassIndexMap[{particle->volume(), particle->mass}];
                 particlesBin[bin][sizeType]++;
             }
@@ -328,8 +387,57 @@ int main(int argc, char *argv[]) {
 
             postProcessedFile << "\nOVERALL SEGREGATION INDEX = " << segregationIndex << "\n";
 
+            /*SMI CALCULATION*/
+
+            int pTypeCount = particlesBin[0].size();
+            std::vector<double> f(pTypeCount, 0);
+            std::vector<long long> totalTypeCount(pTypeCount, 0);
+            long long maxTypeCount = LONG_LONG_MIN;
+            long long totalParticles = 0;
+            for (int i = 0; i < totalTypeCount.size(); ++i) {
+                for (int j = 0; j < particlesBin.size(); ++j) {
+                    totalTypeCount[i] += particlesBin[j][i];
+                }
+                maxTypeCount = std::max(totalTypeCount[i], maxTypeCount);
+                totalParticles += totalTypeCount[i];
+            }
+            for (int i = 0; i < f.size(); ++i) {
+                f[i] = double(maxTypeCount) / double(totalTypeCount[i]);
+            }
+            std::vector<std::vector<double>> P(particlesBin.size(), std::vector<double>(pTypeCount, 0));
+            for (int i = 0; i < P.size(); ++i) {
+                double max_nf = LONG_LONG_MIN;
+                for (int j = 0; j < P[i].size(); ++j) {
+                    max_nf = std::max(max_nf, particlesBin[i][j] * f[j]);
+                }
+                for (int j = 0; j < P[i].size(); ++j) {
+                    P[i][j] = (double(particlesBin[i][j]) * f[j]) / max_nf;
+                }
+            }
+            std::vector<double> SMI_bin(particlesBin.size(), 0);
+            double one_by_type_minus_one = 1.0 / (double(pTypeCount) - 1.0);
+            for (int i = 0; i < SMI_bin.size(); ++i) {
+                double Psum = 0;
+                for (int j = 0; j < P[i].size(); ++j) {
+                    Psum += P[i][j];
+                }
+                SMI_bin[i] = one_by_type_minus_one * (Psum - 1.0);
+            }
+            double SMI = 0;
+            for (int i = 0; i < particlesBin.size(); ++i) {
+                long long binParticleCount = 0;
+                for (int j = 0; j < particlesBin[i].size(); ++j) {
+                    binParticleCount += particlesBin[i][j];
+                }
+                SMI += SMI_bin[i] * double(binParticleCount);
+            }
+            SMI /= double(totalParticles);
+            postProcessedFile << "\nSMI = " << SMI << "\n";
+            //////////////////////////////////////////////////////////////////////////
+
             // Plot fine fraction with distance
-            std::vector<double> dist(particlesMassFractionBin.size(), 0);
+            std::vector<double>
+                    dist(particlesMassFractionBin.size(), 0);
             std::vector<double> fineMassFraction(particlesMassFractionBin.size(), 0);
             for (int i = 0; i < particlesMassFractionBin.size(); ++i) {
                 dist[i] = (i + 0.5) * zIncrement;
