@@ -66,6 +66,20 @@ int isFile(const std::string &path) {
     return -1;
 }
 
+struct fileNameComparator {
+    inline bool operator()(const std::string &str1, const std::string &str2) {
+        int sIndex = 0;
+        for (; sIndex < str1.length(); sIndex++) { if (isdigit(str1[sIndex])) break; }
+        std::string str1_cp = str1.substr(sIndex, str1.length() - 1);
+        long long fn1 = atoll(str1_cp.c_str());
+        sIndex = 0;
+        for (; sIndex < str1.length(); sIndex++) { if (isdigit(str2[sIndex])) break; }
+        std::string str2_cp = str2.substr(sIndex, str2.length() - 1);
+        long long fn2 = atoll(str2_cp.c_str());
+        return fn1 < fn2;
+    }
+};
+
 int main(int argc, char *argv[]) {
     // Ensure a filename was specified
     if (argc < 2) {
@@ -165,7 +179,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    std::sort(filesVector.begin(), filesVector.end());
+    std::sort(filesVector.begin(), filesVector.end(), fileNameComparator());
     if (flags & flagDispatchTable["-notall"] && filesVector.size() >= 3) {
         std::string firstFile = filesVector[0];
         std::string lastFile = filesVector[filesVector.size() - 1];
@@ -321,10 +335,6 @@ int main(int argc, char *argv[]) {
                 bottomZ = bedBottom;
                 zIncrement = (topZ - bottomZ) / sliceCount;
             }
-            std::cout << "zinc " << zIncrement << "\n";
-//            std::cout << "zinco " << zIncrement << "\n";
-//            std::cout << "zinc " << zIncrement << "\n";
-//            std::cout << "bedH " << bedHeight << "\n";
             std::vector<std::vector<long long >> particlesBin(sliceCount,
                                                               std::vector<long long>(particleVolumeMassSet.size(), 0));
             std::vector<std::vector<double >> particlesMassBin(sliceCount,
@@ -340,11 +350,10 @@ int main(int argc, char *argv[]) {
             }
             std::cout << "Particle count: " << particleVector.size() << "\n";
             int pc = 0;
-//            std::cout << particleVector[97492]->z << "\n";
+
             for (auto &particle : particleVector) {
                 int binI = getBin(bottomZ, particle->z, zIncrement);
                 int bin = clamp(binI, 0, sliceCount - 1);
-//                std::cout << "binI " << binI << " bin " << bin << "\n";
                 int sizeType = particleVolumeMassIndexMap[{particle->volume(), particle->mass}];
                 particlesBin[bin][sizeType]++;
             }
@@ -357,7 +366,8 @@ int main(int argc, char *argv[]) {
                     totalMass += particlesMassBin[i][j];
                 }
                 for (int j = 0; j < particlesMassFractionBin[i].size(); ++j) {
-                    particlesMassFractionBin[i][j] = particlesMassBin[i][j] / totalMass;
+                    particlesMassFractionBin[i][j] = totalMass == 0 ? 0 : particlesMassBin[i][j] / totalMass;
+//                    particlesMassFractionBin[i][j] = particlesMassBin[i][j] / totalMass;
                 }
                 segregationIndex +=
                         (particlesMassFractionBin[i][0] * 2.0 - 1.0) * (particlesMassFractionBin[i][0] * 2.0 - 1.0);
