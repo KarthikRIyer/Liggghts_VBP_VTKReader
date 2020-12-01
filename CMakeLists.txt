@@ -15,7 +15,7 @@ message (STATUS "VTK_VERSION: ${VTK_VERSION}")
 
 set(SOURCE_FILES
         src/Liggghts_VBP_VTKReader.cxx
-        src/sphericalParticle.cpp src/superquadricParticle.cpp src/particle.cpp src/bedHeight.h)
+        src/sphericalParticle.cpp src/superquadricParticle.cpp src/particle.cpp src/bedLims.h)
 
 if (VTK_VERSION VERSION_LESS "8.90.0")
   # old system

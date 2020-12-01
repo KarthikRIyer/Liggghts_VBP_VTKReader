@@ -2,8 +2,8 @@
 // Created by karthik on 23/11/20.
 //
 
-#ifndef LIGGGHTS_VBP_VTKREADER_BEDHEIGHT_H
-#define LIGGGHTS_VBP_VTKREADER_BEDHEIGHT_H
+#ifndef LIGGGHTS_VBP_VTKREADER_BEDLIMS_H
+#define LIGGGHTS_VBP_VTKREADER_BEDLIMS_H
 
 #include <vtkGenericDataObjectReader.h>
 #include <vtkStructuredGrid.h>
@@ -17,7 +17,7 @@
 #include "superquadricParticle.h"
 #include "sphericalParticle.h"
 
-std::pair<double, double> getBedHeight(std::string filePath, bool isSuperQ) {
+std::vector<std::pair<double, double>> getBedLims(std::string filePath, bool isSuperQ) {
     vtkSmartPointer<vtkGenericDataObjectReader> reader =
             vtkSmartPointer<vtkGenericDataObjectReader>::New();
     reader->SetFileName(filePath.c_str());
@@ -51,6 +51,10 @@ std::pair<double, double> getBedHeight(std::string filePath, bool isSuperQ) {
         double quat1, quat2, quat3, quat4;
 
         double p[3];
+        double leftX = VTK_DOUBLE_MAX;
+        double rightX = VTK_DOUBLE_MIN;
+        double backY = VTK_DOUBLE_MAX;
+        double frontY = VTK_DOUBLE_MIN;
         double topZ = VTK_DOUBLE_MIN;
         double bottomZ = VTK_DOUBLE_MAX;
 
@@ -79,10 +83,18 @@ std::pair<double, double> getBedHeight(std::string filePath, bool isSuperQ) {
             }
             topZ = std::max(topZ, particlePtr->getTopZ());
             bottomZ = std::min(bottomZ, particlePtr->getBottomZ());
+            leftX = std::min(leftX, particlePtr->x);
+            rightX = std::max(rightX, particlePtr->x);
+            backY = std::min(backY, particlePtr->y);
+            frontY = std::max(frontY, particlePtr->y);
         }
-        return {bottomZ, topZ};
+        return std::vector<std::pair<double, double>>{{leftX,   rightX},
+                                                      {backY,   frontY},
+                                                      {bottomZ, topZ}};
     }
-    return {0, 0};
+    return std::vector<std::pair<double, double>>{{0, 0},
+                                                  {0, 0},
+                                                  {0, 0}};
 }
 
-#endif //LIGGGHTS_VBP_VTKREADER_BEDHEIGHT_H
+#endif //LIGGGHTS_VBP_VTKREADER_BEDLIMS_H

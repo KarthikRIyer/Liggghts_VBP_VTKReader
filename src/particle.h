@@ -29,6 +29,7 @@ public:
     double vx = 0;
     double vy = 0;
     double vz = 0;
+    int type = -1;
 };
 
 #endif //LIGGGHTS_VBP_VTKREADER_PARTICLE_H

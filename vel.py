@@ -25,6 +25,8 @@ def process_file(filepath):
 
     for line in lines:
         x = line.split()
+        if len(x) != 6:
+            continue
         x = [float(c) for c in x]
         if x[1] > 6.0/1000.0 or x[1] < -6.0/1000.0:
             continue

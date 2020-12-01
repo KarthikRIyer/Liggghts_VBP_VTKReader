@@ -21,7 +21,7 @@
 #include "particle.h"
 #include "superquadricParticle.h"
 #include "sphericalParticle.h"
-#include "bedHeight.h"
+#include "bedLims.h"
 
 
 #endif
@@ -103,6 +103,10 @@ int main(int argc, char *argv[]) {
     std::string initFilePath = "";
     double bedBottom = -DBL_MAX;
     double bedTop = -DBL_MAX;
+    double bedLeft = -DBL_MAX;
+    double bedRight = -DBL_MAX;
+    double bedBack = -DBL_MAX;
+    double bedFront = -DBL_MAX;
 
     if (argc > 2) {
         for (int i = 2; i < argc; ++i) {
@@ -170,9 +174,14 @@ int main(int argc, char *argv[]) {
             }
         }
         if (!initFilePath.empty() && init_frame_count != LONG_LONG_MIN) {
-            std::pair<double, double> bedLims = getBedHeight(initFilePath, flags & flagDispatchTable["-superq"]);
-            bedBottom = bedLims.first;
-            bedTop = bedLims.second;
+            std::vector<std::pair<double, double>> bedLims = getBedLims(initFilePath,
+                                                                        flags & flagDispatchTable["-superq"]);
+            bedLeft = bedLims[0].first;
+            bedRight = bedLims[0].second;
+            bedBack = bedLims[1].first;
+            bedFront = bedLims[1].second;
+            bedBottom = bedLims[2].first;
+            bedTop = bedLims[2].second;
         } else if (initFilePath.empty() && init_frame_count != LONG_LONG_MIN) {
             std::cout << "Enter correct init frame number!!\n";
             exit(0);
@@ -273,6 +282,10 @@ int main(int argc, char *argv[]) {
             double quat1, quat2, quat3, quat4;
             double mass;
             double p[3];
+            double leftX = VTK_DOUBLE_MAX;
+            double rightX = VTK_DOUBLE_MIN;
+            double backY = VTK_DOUBLE_MAX;
+            double frontY = VTK_DOUBLE_MIN;
             double topZ = VTK_DOUBLE_MIN;
             double bottomZ = VTK_DOUBLE_MAX;
             std::set<std::pair<double, double>> particleVolumeMassSet;
@@ -311,9 +324,13 @@ int main(int argc, char *argv[]) {
                 }
                 particleVolumeMassSet.insert({particlePtr->volume(), particlePtr->mass});
 
-                if (bedTop == -DBL_MAX && bedBottom == -DBL_MAX) {
+                if (bedTop == bedBottom == bedFront == bedBack == bedLeft == bedRight == -DBL_MAX) {
                     topZ = std::max(topZ, particlePtr->getTopZ());
                     bottomZ = std::min(bottomZ, particlePtr->getBottomZ());
+                    leftX = std::min(leftX, particlePtr->x);
+                    rightX = std::max(rightX, particlePtr->x);
+                    backY = std::min(backY, particlePtr->y);
+                    frontY = std::max(frontY, particlePtr->y);
                 }
                 particleVector[int(i)] = particlePtr;
                 /*
@@ -327,12 +344,22 @@ int main(int argc, char *argv[]) {
                  */
             }
 
+            double xIncrement = 0;
+            double yIncrement = 0;
             double zIncrement = 0;
-            if (bedTop == -DBL_MAX && bedBottom == -DBL_MAX)
+            if (bedTop == bedBottom == bedFront == bedBack == bedLeft == bedRight == -DBL_MAX) {
+                xIncrement = (rightX - leftX) / sliceCount;
+                yIncrement = (frontY - backY) / sliceCount;
                 zIncrement = (topZ - bottomZ) / sliceCount;
-            else {
+            } else {
+                rightX = bedRight;
+                leftX = bedLeft;
+                frontY = bedFront;
+                backY = bedBack;
                 topZ = bedTop;
                 bottomZ = bedBottom;
+                xIncrement = (rightX - leftX) / sliceCount;
+                yIncrement = (frontY - backY) / sliceCount;
                 zIncrement = (topZ - bottomZ) / sliceCount;
             }
             std::vector<std::vector<long long >> particlesBin(sliceCount,
@@ -355,6 +382,7 @@ int main(int argc, char *argv[]) {
                 int binI = getBin(bottomZ, particle->z, zIncrement);
                 int bin = clamp(binI, 0, sliceCount - 1);
                 int sizeType = particleVolumeMassIndexMap[{particle->volume(), particle->mass}];
+                particle->type = sizeType;
                 particlesBin[bin][sizeType]++;
             }
             double segregationIndex = 0;
@@ -456,10 +484,54 @@ int main(int argc, char *argv[]) {
             std::vector<double> x, y, z, u, v, w;
             double sum_vx, sum_vy, sum_vz;
             sum_vx = sum_vy = sum_vz = 0;
+            std::vector<std::vector<double>> velBinZ(particlesBin.size(), std::vector<double>(4, 0));
+            std::vector<std::vector<double>> velBinX(particlesBin.size(), std::vector<double>(4, 0));
+            std::vector<std::vector<double>> velBinY(particlesBin.size(), std::vector<double>(4, 0));
+            std::vector<std::vector<std::vector<double>>> velBinZByType(particleIndexVolumeMassMap.size(),
+                                                                        std::vector<std::vector<double>>(
+                                                                                particlesBin.size(),
+                                                                                std::vector<double>(4, 0)));
+            std::vector<std::vector<std::vector<double>>> velBinXByType(particleIndexVolumeMassMap.size(),
+                                                                        std::vector<std::vector<double>>(
+                                                                                particlesBin.size(),
+                                                                                std::vector<double>(4, 0)));
+            std::vector<std::vector<std::vector<double>>> velBinYByType(particleIndexVolumeMassMap.size(),
+                                                                        std::vector<std::vector<double>>(
+                                                                                particlesBin.size(),
+                                                                                std::vector<double>(4, 0)));
             for (auto &i : particleVector) {
                 sum_vx += i->vx;
                 sum_vy += i->vy;
                 sum_vz += i->vz;
+                int vBin = clamp(getBin(bottomZ, i->z, zIncrement), 0, sliceCount - 1);
+                velBinZ[vBin][0] += i->vx;
+                velBinZ[vBin][1] += i->vy;
+                velBinZ[vBin][2] += i->vz;
+                velBinZ[vBin][3] += 1;
+                velBinZByType[i->type][vBin][0] += i->vx;
+                velBinZByType[i->type][vBin][1] += i->vy;
+                velBinZByType[i->type][vBin][2] += i->vz;
+                velBinZByType[i->type][vBin][3] += 1;
+
+                vBin = clamp(getBin(leftX, i->x, xIncrement), 0, sliceCount - 1);
+                velBinX[vBin][0] += i->vx;
+                velBinX[vBin][1] += i->vy;
+                velBinX[vBin][2] += i->vz;
+                velBinX[vBin][3] += 1;
+                velBinXByType[i->type][vBin][0] += i->vx;
+                velBinXByType[i->type][vBin][1] += i->vy;
+                velBinXByType[i->type][vBin][2] += i->vz;
+                velBinXByType[i->type][vBin][3] += 1;
+
+                vBin = clamp(getBin(backY, i->y, yIncrement), 0, sliceCount - 1);
+                velBinY[vBin][0] += i->vx;
+                velBinY[vBin][1] += i->vy;
+                velBinY[vBin][2] += i->vz;
+                velBinY[vBin][3] += 1;
+                velBinYByType[i->type][vBin][0] += i->vx;
+                velBinYByType[i->type][vBin][1] += i->vy;
+                velBinYByType[i->type][vBin][2] += i->vz;
+                velBinYByType[i->type][vBin][3] += 1;
 //                if (i->y <= 6.0 / 1000.0 && i->y >= -6.0 / 1000.0) {
                 x.push_back(i->x);
                 y.push_back(i->y);
@@ -471,6 +543,71 @@ int main(int argc, char *argv[]) {
                                      << i->vz << "\n";
 //                }
             }
+            postProcessedFile << "\n";
+            for (int i = velBinX.size() - 1; i >= 0; i--) {
+                double v_avg =
+                        sqrt(velBinX[i][0] * velBinX[i][0] + velBinX[i][1] * velBinX[i][1] +
+                             velBinX[i][2] * velBinX[i][2]) /
+                        velBinX[i][3];
+                postProcessedVelFile << "AVG VEL BIN X " << i << " " << v_avg << "\n";
+                postProcessedFile << "AVG VEL BIN X " << i << " " << v_avg << "\n";
+            }
+            postProcessedFile << "\n";
+            for (int i = velBinY.size() - 1; i >= 0; i--) {
+                double v_avg =
+                        sqrt(velBinY[i][0] * velBinY[i][0] + velBinY[i][1] * velBinY[i][1] +
+                             velBinY[i][2] * velBinY[i][2]) /
+                        velBinY[i][3];
+                postProcessedVelFile << "AVG VEL BIN Y " << i << " " << v_avg << "\n";
+                postProcessedFile << "AVG VEL BIN Y " << i << " " << v_avg << "\n";
+            }
+            postProcessedFile << "\n";
+            for (int i = velBinZ.size() - 1; i >= 0; i--) {
+                double v_avg =
+                        sqrt(velBinZ[i][0] * velBinZ[i][0] + velBinZ[i][1] * velBinZ[i][1] +
+                             velBinZ[i][2] * velBinZ[i][2]) /
+                        velBinZ[i][3];
+                postProcessedVelFile << "AVG VEL BIN Z " << i << " " << v_avg << "\n";
+                postProcessedFile << "AVG VEL BIN Z " << i << " " << v_avg << "\n";
+            }
+
+            postProcessedFile << "\n";
+            for (int i = 0; i < velBinXByType.size(); i++) {
+                for (int j = velBinXByType[i].size() - 1; j >= 0; j--) {
+                    double v_avg = velBinXByType[i][j][3] == 0 ? 0 :
+                                   sqrt(velBinXByType[i][j][0] * velBinXByType[i][j][0] +
+                                        velBinXByType[i][j][1] * velBinXByType[i][j][1] +
+                                        velBinXByType[i][j][2] * velBinXByType[i][j][2]) /
+                                   velBinXByType[i][j][3];
+                    postProcessedVelFile << "AVG VEL TYPE BIN X " << i << " " << j << " " << v_avg << "\n";
+                    postProcessedFile << "AVG VEL TYPE BIN X " << i << " " << j << " " << v_avg << "\n";
+                }
+            }
+            postProcessedFile << "\n";
+            for (int i = 0; i < velBinYByType.size(); i++) {
+                for (int j = velBinYByType[i].size() - 1; j >= 0; j--) {
+                    double v_avg = velBinYByType[i][j][3] == 0 ? 0 :
+                                   sqrt(velBinYByType[i][j][0] * velBinYByType[i][j][0] +
+                                        velBinYByType[i][j][1] * velBinYByType[i][j][1] +
+                                        velBinYByType[i][j][2] * velBinYByType[i][j][2]) /
+                                   velBinYByType[i][j][3];
+                    postProcessedVelFile << "AVG VEL TYPE BIN Y " << i << " " << j << " " << v_avg << "\n";
+                    postProcessedFile << "AVG VEL TYPE BIN Y " << i << " " << j << " " << v_avg << "\n";
+                }
+            }
+            postProcessedFile << "\n";
+            for (int i = 0; i < velBinZByType.size(); i++) {
+                for (int j = velBinZByType[i].size() - 1; j >= 0; j--) {
+                    double v_avg = velBinZByType[i][j][3] == 0 ? 0 :
+                                   sqrt(velBinZByType[i][j][0] * velBinZByType[i][j][0] +
+                                        velBinZByType[i][j][1] * velBinZByType[i][j][1] +
+                                        velBinZByType[i][j][2] * velBinZByType[i][j][2]) /
+                                   velBinZByType[i][j][3];
+                    postProcessedVelFile << "AVG VEL TYPE BIN Z " << i << " " << j << " " << v_avg << "\n";
+                    postProcessedFile << "AVG VEL TYPE BIN Z " << i << " " << j << " " << v_avg << "\n";
+                }
+            }
+
             postProcessedVelFile.close();
             double v_avg = sqrt(sum_vx * sum_vx + sum_vy * sum_vy + sum_vz * sum_vz) / particleVector.size();
             postProcessedFile << "\nAVERAGE VELOCITY = " << v_avg << "\n";
