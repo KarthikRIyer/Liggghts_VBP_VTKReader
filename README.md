@@ -10,6 +10,8 @@ This also depends on matplotlibcpp to plot graphs. A [fork](https://github.com/C
 ```console
 sudo apt-get install libvtk6.3 libvtk6-dev
 sudo apt-get install python-matplotlib python2.7-dev
+pip install matplotlib
+pip install numpy
 ```
 
 From root directory of the project:
