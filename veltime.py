@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import math
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
+import numpy as np
+# from sklearn.metrics import r2_score
 import sys
 import os
 
@@ -163,6 +165,12 @@ for i in range(1, n):
         print('Extracted data, now plotting...')
         fig_dpi = 80
         plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+        # if len(timesteps_list) != 0:
+        #     fitmodel = np.poly1d(
+        #         np.polyfit(timesteps_list, avg_vel_list, 4))
+        #     fitline = np.linspace(timesteps_list[0], timesteps_list[-1],
+        #                           len(timesteps_list) * 10)
+        #     plt.plot(fitline, fitmodel(fitline))
         plt.plot(timesteps_list, avg_vel_list)
         plt.xlabel('Timesteps')
         plt.ylabel('Average Velocity (m/s)')
@@ -184,6 +192,11 @@ for i in range(1, n):
                                                               avg_vel_bin_z_type0_list,
                                                               avg_vel_bin_z_type1_list):
             plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+            if len(avg_vel_bin_x) != 0:
+                fitmodel = np.poly1d(
+                    np.polyfit(range(len(avg_vel_bin_x)), avg_vel_bin_x, 4))
+                fitline = np.linspace(0, len(avg_vel_bin_x) - 1, 100)
+                plt.plot(fitline, fitmodel(fitline))
             plt.plot(range(len(avg_vel_bin_x)), avg_vel_bin_x)
             plt.xlabel('X bins')
             plt.ylabel('Average Velocity (m/s) Both particles')
@@ -193,6 +206,11 @@ for i in range(1, n):
             plt.close('all')
 
             plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+            if len(avg_vel_bin_y) != 0:
+                fitmodel = np.poly1d(
+                    np.polyfit(range(len(avg_vel_bin_y)), avg_vel_bin_y, 4))
+                fitline = np.linspace(0, len(avg_vel_bin_y) - 1, 100)
+                plt.plot(fitline, fitmodel(fitline))
             plt.plot(range(len(avg_vel_bin_y)), avg_vel_bin_y)
             plt.xlabel('Y bins')
             plt.ylabel('Average Velocity (m/s) Both particles')
@@ -202,6 +220,11 @@ for i in range(1, n):
             plt.close('all')
 
             plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+            if len(avg_vel_bin_z) != 0:
+                fitmodel = np.poly1d(
+                    np.polyfit(range(len(avg_vel_bin_z)), avg_vel_bin_z, 4))
+                fitline = np.linspace(0, len(avg_vel_bin_z) - 1, 100)
+                plt.plot(fitline, fitmodel(fitline))
             plt.plot(range(len(avg_vel_bin_z)), avg_vel_bin_z)
             plt.xlabel('Z bins')
             plt.ylabel('Average Velocity (m/s) Both particles')
@@ -212,6 +235,11 @@ for i in range(1, n):
 
             # fine avg vel vs x
             plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+            if len(avg_vel_bin_x_type0) != 0:
+                fitmodel = np.poly1d(
+                    np.polyfit(range(len(avg_vel_bin_x_type0)), avg_vel_bin_x_type0, 4))
+                fitline = np.linspace(0, len(avg_vel_bin_x_type0) - 1, 100)
+                plt.plot(fitline, fitmodel(fitline))
             plt.plot(range(len(avg_vel_bin_x_type0)), avg_vel_bin_x_type0)
             plt.xlabel('X bins')
             plt.ylabel('Average Velocity Fines (m/s)')
@@ -222,6 +250,11 @@ for i in range(1, n):
             plt.close('all')
             # coarse avg vel vs x
             plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+            if len(avg_vel_bin_x_type1) != 0:
+                fitmodel = np.poly1d(
+                    np.polyfit(range(len(avg_vel_bin_x_type1)), avg_vel_bin_x_type1, 4))
+                fitline = np.linspace(0, len(avg_vel_bin_x_type1) - 1, 100)
+                plt.plot(fitline, fitmodel(fitline))
             plt.plot(range(len(avg_vel_bin_x_type1)), avg_vel_bin_x_type1)
             plt.xlabel('X bins')
             plt.ylabel('Average Velocity Coarse (m/s)')
@@ -233,6 +266,11 @@ for i in range(1, n):
 
             # fine avg vel vs y
             plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+            if len(avg_vel_bin_y_type0) != 0:
+                fitmodel = np.poly1d(
+                    np.polyfit(range(len(avg_vel_bin_y_type0)), avg_vel_bin_y_type0, 4))
+                fitline = np.linspace(0, len(avg_vel_bin_y_type0) - 1, 100)
+                plt.plot(fitline, fitmodel(fitline))
             plt.plot(range(len(avg_vel_bin_y_type0)), avg_vel_bin_y_type0)
             plt.xlabel('Y bins')
             plt.ylabel('Average Velocity Fines (m/s)')
@@ -243,6 +281,11 @@ for i in range(1, n):
             plt.close('all')
             # coarse avg vel vs y
             plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+            if len(avg_vel_bin_y_type1) != 0:
+                fitmodel = np.poly1d(
+                    np.polyfit(range(len(avg_vel_bin_y_type1)), avg_vel_bin_y_type1, 4))
+                fitline = np.linspace(0, len(avg_vel_bin_y_type1) - 1, 100)
+                plt.plot(fitline, fitmodel(fitline))
             plt.plot(range(len(avg_vel_bin_y_type1)), avg_vel_bin_y_type1)
             plt.xlabel('Y bins')
             plt.ylabel('Average Velocity Coarse (m/s)')
@@ -254,6 +297,11 @@ for i in range(1, n):
 
             # fine avg vel vs z
             plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+            if len(avg_vel_bin_z_type0) != 0:
+                fitmodel = np.poly1d(
+                    np.polyfit(range(len(avg_vel_bin_z_type0)), avg_vel_bin_z_type0, 4))
+                fitline = np.linspace(0, len(avg_vel_bin_z_type0) - 1, 100)
+                plt.plot(fitline, fitmodel(fitline))
             plt.plot(range(len(avg_vel_bin_z_type0)), avg_vel_bin_z_type0)
             plt.xlabel('Z bins')
             plt.ylabel('Average Velocity Fines (m/s)')
@@ -264,6 +312,11 @@ for i in range(1, n):
             plt.close('all')
             # coarse avg vel vs z
             plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+            if len(avg_vel_bin_z_type1) != 0:
+                fitmodel = np.poly1d(
+                    np.polyfit(range(len(avg_vel_bin_z_type1)), avg_vel_bin_z_type1, 4))
+                fitline = np.linspace(0, len(avg_vel_bin_z_type1) - 1, 100)
+                plt.plot(fitline, fitmodel(fitline))
             plt.plot(range(len(avg_vel_bin_z_type1)), avg_vel_bin_z_type1)
             plt.xlabel('Z bins')
             plt.ylabel('Average Velocity Coarse (m/s)')
