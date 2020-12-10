@@ -27,7 +27,10 @@ def process_file(filepath):
         x = line.split()
         if len(x) != 6:
             continue
-        x = [float(c) for c in x]
+        try:
+            x = [float(c) for c in x]
+        except:
+            continue
         if x[1] > 6.0/1000.0 or x[1] < -6.0/1000.0:
             continue
         px.append(x[0])
@@ -38,6 +41,8 @@ def process_file(filepath):
         vz.append(x[5])
 
     colors = [math.sqrt(a * a + b * b) for a, b in zip(vx, vz)]
+    if(len(colors) == 0):
+        return
     norm = Normalize()
     norm.autoscale(colors)
     colormap = cm.inferno
