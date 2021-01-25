@@ -162,9 +162,11 @@ int main(int argc, char *argv[]) {
                     prospectiveFile.find("boundingBox") == std::string::npos) {
                     filesVector.push_back(inputFilename + prospectiveFile);
                     if (initFilePath.empty() && init_frame_count != LONG_LONG_MIN) {
+//                        std::cout<<"here\n";
                         std::string initFile = filesVector.back();
+//                        std::cout<<initFile<<"\n";
                         int sIndex = 0;
-                        for (; sIndex < initFile.length(); sIndex++) { if (isdigit(initFile[sIndex])) break; }
+                        for (; sIndex < initFile.length(); sIndex++) { if (isdigit(initFile[sIndex]) && initFile[sIndex-1] == 'p') break; }
                         initFile = initFile.substr(sIndex, initFile.length() - 1);
                         long long fn = atoll(initFile.c_str());
                         if (fn == init_frame_count)
@@ -324,7 +326,16 @@ int main(int argc, char *argv[]) {
                 }
                 particleVolumeMassSet.insert({particlePtr->volume(), particlePtr->mass});
 
-                if (bedTop == bedBottom == bedFront == bedBack == bedLeft == bedRight == -DBL_MAX) {
+//                std::cout<<"bedTop = "<<bedTop<<"\n";
+//                std::cout<<"bedBottom = "<<bedBottom<<"\n";
+//                std::cout<<"bedFront = "<<bedFront<<"\n";
+//                std::cout<<"bedBack = "<<bedBack<<"\n";
+//                std::cout<<"bedLeft = "<<bedLeft<<"\n";
+//                std::cout<<"bedRight = "<<bedRight<<"\n";
+
+                if (bedTop == -DBL_MAX && bedBottom == -DBL_MAX &&
+                    bedFront == -DBL_MAX && bedBack == -DBL_MAX &&
+                    bedLeft == -DBL_MAX && bedRight == -DBL_MAX) {
                     topZ = std::max(topZ, particlePtr->getTopZ());
                     bottomZ = std::min(bottomZ, particlePtr->getBottomZ());
                     leftX = std::min(leftX, particlePtr->x);
@@ -347,7 +358,9 @@ int main(int argc, char *argv[]) {
             double xIncrement = 0;
             double yIncrement = 0;
             double zIncrement = 0;
-            if (bedTop == bedBottom == bedFront == bedBack == bedLeft == bedRight == -DBL_MAX) {
+            if (bedTop == -DBL_MAX && bedBottom == -DBL_MAX &&
+                bedFront == -DBL_MAX && bedBack == -DBL_MAX &&
+                bedLeft == -DBL_MAX && bedRight == -DBL_MAX) {
                 xIncrement = (rightX - leftX) / sliceCount;
                 yIncrement = (frontY - backY) / sliceCount;
                 zIncrement = (topZ - bottomZ) / sliceCount;
@@ -362,6 +375,7 @@ int main(int argc, char *argv[]) {
                 yIncrement = (frontY - backY) / sliceCount;
                 zIncrement = (topZ - bottomZ) / sliceCount;
             }
+
             std::vector<std::vector<long long >> particlesBin(sliceCount,
                                                               std::vector<long long>(particleVolumeMassSet.size(), 0));
             std::vector<std::vector<double >> particlesMassBin(sliceCount,
