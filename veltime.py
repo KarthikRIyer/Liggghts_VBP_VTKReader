@@ -29,6 +29,7 @@ def get_avg_vel(filepath):
     avg_vel_bin_z_type1 = []
     ts = 0
     avg_v = 0
+    smi = 0
 
     for line in lines:
         if line.find('AVERAGE VELOCITY') != -1:
@@ -62,17 +63,20 @@ def get_avg_vel(filepath):
         elif line.find('AVG VEL TYPE BIN Z 1') != -1:
             words = line.split()
             avg_vel_bin_z_type1.append(float(words[-1]))
-        avg_vel_bin_x.reverse()
-        avg_vel_bin_y.reverse()
-        avg_vel_bin_z.reverse()
-        avg_vel_bin_x_type0.reverse()
-        avg_vel_bin_x_type1.reverse()
-        avg_vel_bin_y_type0.reverse()
-        avg_vel_bin_y_type1.reverse()
-        avg_vel_bin_z_type0.reverse()
-        avg_vel_bin_z_type1.reverse()
+        elif line.find('SMI') != -1:
+            words = line.split()
+            smi = float(words[-1])
+    avg_vel_bin_x.reverse()
+    avg_vel_bin_y.reverse()
+    avg_vel_bin_z.reverse()
+    avg_vel_bin_x_type0.reverse()
+    avg_vel_bin_x_type1.reverse()
+    avg_vel_bin_y_type0.reverse()
+    avg_vel_bin_y_type1.reverse()
+    avg_vel_bin_z_type0.reverse()
+    avg_vel_bin_z_type1.reverse()
 
-    return avg_v, ts, avg_vel_bin_x, avg_vel_bin_y, avg_vel_bin_z, avg_vel_bin_x_type0, avg_vel_bin_x_type1, avg_vel_bin_y_type0, avg_vel_bin_y_type1, avg_vel_bin_z_type0, avg_vel_bin_z_type1
+    return avg_v, ts, avg_vel_bin_x, avg_vel_bin_y, avg_vel_bin_z, avg_vel_bin_x_type0, avg_vel_bin_x_type1, avg_vel_bin_y_type0, avg_vel_bin_y_type1, avg_vel_bin_z_type0, avg_vel_bin_z_type1, smi
 
     # colors = [math.sqrt(a * a + b * b) for a, b in zip(vx, vz)]
     # norm = Normalize()
@@ -129,6 +133,7 @@ for i in range(1, n):
         avg_vel_bin_x_type1_list = []
         avg_vel_bin_y_type1_list = []
         avg_vel_bin_z_type1_list = []
+        smi_list = []
         path = os.path.join(path, '_post_processed')
         ppfiles = [os.path.join(path, f) for f in os.listdir(path) if
                    is_vel_file(os.path.join(path, f))]
@@ -137,7 +142,7 @@ for i in range(1, n):
             avg_vel, timestep, avg_vel_bin_x, avg_vel_bin_y, avg_vel_bin_z, \
             avg_vel_bin_x_type0, avg_vel_bin_x_type1, avg_vel_bin_y_type0, \
             avg_vel_bin_y_type1, avg_vel_bin_z_type0, \
-            avg_vel_bin_z_type1 = get_avg_vel(ppfile)
+            avg_vel_bin_z_type1, smi = get_avg_vel(ppfile)
             avg_vel_list.append(avg_vel)
             timesteps_list.append(timestep)
             avg_vel_bin_x_list.append(avg_vel_bin_x)
@@ -149,21 +154,24 @@ for i in range(1, n):
             avg_vel_bin_y_type1_list.append(avg_vel_bin_y_type1)
             avg_vel_bin_z_type0_list.append(avg_vel_bin_z_type0)
             avg_vel_bin_z_type1_list.append(avg_vel_bin_z_type1)
+            smi_list.append(smi)
 
         timesteps_list, avg_vel_list, \
         avg_vel_bin_x_list, avg_vel_bin_y_list, \
         avg_vel_bin_z_list, avg_vel_bin_x_type0_list, \
         avg_vel_bin_x_type1_list, avg_vel_bin_y_type0_list, \
-        avg_vel_bin_y_type1_list, avg_vel_bin_z_type0_list, avg_vel_bin_z_type1_list = (
+        avg_vel_bin_y_type1_list, avg_vel_bin_z_type0_list, avg_vel_bin_z_type1_list, \
+        smi_list = (
             list(t) for t in
             zip(*sorted(
                 zip(timesteps_list, avg_vel_list, avg_vel_bin_x_list,
                     avg_vel_bin_y_list, avg_vel_bin_z_list,
                     avg_vel_bin_x_type0_list, avg_vel_bin_x_type1_list,
                     avg_vel_bin_y_type0_list, avg_vel_bin_y_type1_list,
-                    avg_vel_bin_z_type0_list, avg_vel_bin_z_type1_list))))
+                    avg_vel_bin_z_type0_list, avg_vel_bin_z_type1_list, smi_list))))
         print('Extracted data, now plotting...')
         fig_dpi = 80
+        # PLOT AVG_VEL vs TIME
         plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
         # if len(timesteps_list) != 0:
         #     fitmodel = np.poly1d(
@@ -179,6 +187,24 @@ for i in range(1, n):
                     bbox_inches='tight')
         # print('Saved file' + filepath + '.png')
         plt.close('all')
+
+        # PLOT SMI vs TIME
+        plt.figure(figsize=(1920 / fig_dpi, 1080 / fig_dpi), dpi=fig_dpi)
+        # if len(timesteps_list) != 0:
+        #     fitmodel = np.poly1d(
+        #         np.polyfit(timesteps_list, avg_vel_list, 4))
+        #     fitline = np.linspace(timesteps_list[0], timesteps_list[-1],
+        #                           len(timesteps_list) * 10)
+        #     plt.plot(fitline, fitmodel(fitline))
+        plt.plot(timesteps_list, smi_list)
+        plt.xlabel('Timesteps')
+        plt.ylabel('SMI')
+        plt.title('SMI vs timesteps')
+        plt.savefig(os.path.join(path, 'smi_time.png'), dpi=fig_dpi,
+                    bbox_inches='tight')
+        # print('Saved file' + filepath + '.png')
+        plt.close('all')
+
         for (ts, avg_vel_bin_x, avg_vel_bin_y, avg_vel_bin_z, avg_vel_bin_x_type0,
              avg_vel_bin_x_type1, avg_vel_bin_y_type0, avg_vel_bin_y_type1,
              avg_vel_bin_z_type0, avg_vel_bin_z_type1) in zip(timesteps_list,

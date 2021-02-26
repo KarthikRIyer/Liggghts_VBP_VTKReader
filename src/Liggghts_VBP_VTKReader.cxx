@@ -625,6 +625,7 @@ int main(int argc, char *argv[]) {
             double v_avg = sqrt(sum_vx * sum_vx + sum_vy * sum_vy + sum_vz * sum_vz) / particleVector.size();
             postProcessedFile << "\nAVERAGE VELOCITY = " << v_avg << "\n";
             postProcessedVelFile << "\nAVERAGE VELOCITY = " << v_avg << "\n";
+            postProcessedVelFile << "\nSMI = " << SMI << "\n";
             postProcessedVelFile.close();
 
 
