@@ -23,6 +23,8 @@ public:
     double getTopZ() override;
 
     double getBottomZ() override;
+
+    double getMaxDimLength() override;
 };
 
 #endif //LIGGGHTS_VBP_VTKREADER_SPHERICALPARTICLE_H

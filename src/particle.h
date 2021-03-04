@@ -21,6 +21,8 @@ public:
 
     virtual double volume();
 
+    virtual double getMaxDimLength();
+
     double mass = 0;
     double vol = 0;
     double x = 0;

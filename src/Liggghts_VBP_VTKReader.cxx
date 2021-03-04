@@ -22,6 +22,9 @@
 #include "superquadricParticle.h"
 #include "sphericalParticle.h"
 #include "bedLims.h"
+#include "particleSearcher.h"
+#include "sphStdKernel.h"
+#include "sphSpikyKernel.h"
 
 
 #endif
@@ -97,6 +100,7 @@ int main(int argc, char *argv[]) {
             {"-onlylast",  1u << 2u},
             {"-superq",    1u << 3u},
             {"-initframe", 1u << 4u},
+            {"-velgrad",   1u << 5u}
     };
     unsigned int flags = 0;
     long long init_frame_count = LONG_LONG_MIN;
@@ -166,7 +170,9 @@ int main(int argc, char *argv[]) {
                         std::string initFile = filesVector.back();
 //                        std::cout<<initFile<<"\n";
                         int sIndex = 0;
-                        for (; sIndex < initFile.length(); sIndex++) { if (isdigit(initFile[sIndex]) && initFile[sIndex-1] == 'p') break; }
+                        for (; sIndex < initFile.length(); sIndex++) {
+                            if (isdigit(initFile[sIndex]) && initFile[sIndex - 1] == 'p')break;
+                        }
                         initFile = initFile.substr(sIndex, initFile.length() - 1);
                         long long fn = atoll(initFile.c_str());
                         if (fn == init_frame_count)
@@ -295,6 +301,7 @@ int main(int argc, char *argv[]) {
             std::map<int, std::pair<double, double>> particleIndexVolumeMassMap;
             int sliceCount = 10;
             std::vector<std::shared_ptr<Particle>> particleVector(output->GetNumberOfPoints(), nullptr);
+            std::map<std::pair<double, double>, std::vector<std::shared_ptr<Particle>>> particleVolumeMassParticleMap;
 
             postProcessedFile << "output has " << output->GetNumberOfPoints() << " points.\n";
             for (vtkIdType i = 0; i < output->GetNumberOfPoints(); ++i) {
@@ -325,6 +332,7 @@ int main(int argc, char *argv[]) {
                                                                       velocity[1], velocity[2]);
                 }
                 particleVolumeMassSet.insert({particlePtr->volume(), particlePtr->mass});
+                particleVolumeMassParticleMap[{particlePtr->volume(), particlePtr->mass}].push_back(particlePtr);
 
 //                std::cout<<"bedTop = "<<bedTop<<"\n";
 //                std::cout<<"bedBottom = "<<bedBottom<<"\n";
@@ -628,6 +636,101 @@ int main(int argc, char *argv[]) {
             postProcessedVelFile << "\nSMI = " << SMI << "\n";
             postProcessedVelFile.close();
 
+            if (flags & flagDispatchTable["-velgrad"]) {
+                int particleType = -1;
+//                std::cout<<"here\n";
+//                std::cout<<"size "<<particleVolumeMassParticleMap.size()<<"\n";
+                for (auto volMassParticle: particleVolumeMassParticleMap) {
+                    particleType++;
+                    std::vector<std::vector<size_t>> neighborLists;
+                    ParticleSearcher particleSearcher(volMassParticle.second, rightX, leftX, frontY, backY, topZ,
+                                                      bottomZ);
+
+                    neighborLists.resize(volMassParticle.second.size());
+//                    std::cout<<"mapsize "<<volMassParticle.second.size()<<"\n";
+                    double kernelRadius = 4 * volMassParticle.second.at(0)->getMaxDimLength();
+//                    std::cout<<"kernelRadius "<<kernelRadius<<"\n";
+                    double _mass = volMassParticle.second.at(0)->mass;
+//                    std::cout<<"_mass "<<_mass<<"\n";
+
+                    for (size_t i = 0; i < volMassParticle.second.size(); ++i) {
+                        glm::dvec3 origin(volMassParticle.second.at(i)->x, volMassParticle.second.at(i)->y,
+                                          volMassParticle.second.at(i)->z);
+                        neighborLists[i].clear();
+                        particleSearcher.forEachNearbyPoint(origin, kernelRadius,
+                                                            [&](size_t j, const std::shared_ptr<Particle> &particle) {
+                                                                if (i != j)neighborLists[i].push_back(j);
+//                                                                std::cout<<"foreach "<<i<<" "<<j<<"\n";
+                                                            });
+//                        if (neighborLists[i].size() != 0) {
+//                            std::cout << "NL " << i << "\n";
+//                        }
+//                        std::cout<<"neigborcoount "<<neighborLists[i].size()<<"\n";
+                    }
+
+                    //calculate densities TODO PARALLELIZE
+                    std::vector<double> d(volMassParticle.second.size(), 0);
+                    for (int i = 0; i < d.size(); ++i) {
+                        double sum = 0;
+                        SphStdKernel kernel(kernelRadius);
+                        glm::dvec3 origin(volMassParticle.second.at(i)->x, volMassParticle.second.at(i)->y,
+                                          volMassParticle.second.at(i)->z);
+                        particleSearcher.forEachNearbyPoint(origin, kernelRadius,
+                                                            [&](size_t j, const std::shared_ptr<Particle> &particle) {
+                                                                glm::dvec3 neighborPos(particle->x, particle->y,
+                                                                                       particle->z);
+                                                                double dist = glm::distance(origin, neighborPos);
+                                                                sum += kernel(dist);
+                                                            });
+                        d[i] = _mass * sum;
+                    }
+
+                    std::vector<double> duz_by_dz;
+//                    std::cout<<"volMassParticle.second.size() "<<volMassParticle.second.size()<<"\n";
+                    for (size_t i = 0; i < volMassParticle.second.size(); ++i) {
+                        auto particle = volMassParticle.second.at(i);
+
+                        const auto &neighbors = neighborLists[i];
+                        if (neighbors.empty()) continue;
+
+                        glm::dvec3 origin(particle->x, particle->y, particle->z);
+                        SphSpikyKernel kernel(kernelRadius);
+                        glm::dvec3 zVelGradSum(0, 0, 0);
+
+                        for (size_t j = 0; j < neighbors.size(); ++j) {
+                            glm::dvec3 neighborPos(volMassParticle.second.at(neighbors.at(j))->x,
+                                                   volMassParticle.second.at(neighbors.at(j))->y,
+                                                   volMassParticle.second.at(neighbors.at(j))->z);
+                            double distance = glm::distance(origin, neighborPos);
+                            if (distance > 0.0) {
+                                glm::dvec3 dir = (neighborPos - origin) / distance;
+//                                zVelGradSum +=
+//                                        volMassParticle.second.at(neighbors.at(j))->vz * _mass / d[neighbors.at(j)] *
+//                                        kernel.gradient(distance, dir);
+                                zVelGradSum += d[i] * _mass *
+                                               ((volMassParticle.second.at(i)->vz / (d[i] * d[i])) +
+                                                (volMassParticle.second.at(neighbors.at(j))->vz /
+                                                 (d[neighbors.at(j)] * d[neighbors.at(j)]))) *
+                                               kernel.gradient(distance, dir);
+                            }
+                        }
+
+                        duz_by_dz.push_back(zVelGradSum.z);
+//                        std::cout << "velgrad "<<zVelGradSum.z << "\n";
+                    }
+
+                    //calculate mean gradient
+                    int n = 0;
+                    double meanGrad = 0;
+                    for (auto val: duz_by_dz) {
+                        double delta = val - meanGrad;
+                        meanGrad += delta / ++n;
+                    }
+                    postProcessedFile << "\nduz/dz TYPE " << particleType << " = " << meanGrad << "\n";
+//                    std::cout<<"\nduz/dz TYPE " << particleType << " = " << meanGrad << "\n";
+                }
+
+            }
 
 //            plt::figure_size(1200, 800);
 //            plt::plot(dist, fineMassFraction);

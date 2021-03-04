@@ -15,3 +15,7 @@ double Particle::getBottomZ() {
 double Particle::volume() {
     return vol;
 }
+
+double Particle::getMaxDimLength() {
+    return 0;
+}

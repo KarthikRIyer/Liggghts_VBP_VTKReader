@@ -19,6 +19,9 @@ set(SOURCE_FILES
         src/superquadricParticle.cpp
         src/particle.cpp
         src/bedLims.h
+        src/particleSearcher.cpp
+        src/sphSpikyKernel.cpp
+        src/sphStdKernel.cpp
         )
 
 if (VTK_VERSION VERSION_LESS "8.90.0")
@@ -26,6 +29,7 @@ if (VTK_VERSION VERSION_LESS "8.90.0")
   include(${VTK_USE_FILE})
   add_executable(Liggghts_VBP_VTKReader MACOSX_BUNDLE ${SOURCE_FILES})
   target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES} )
+  target_include_directories(Liggghts_VBP_VTKReader PUBLIC ${PROJECT_SOURCE_DIR}/glm)
 #  target_link_libraries(Liggghts_VBP_VTKReader PRIVATE ${VTK_LIBRARIES} Python2::Python)
 #  target_include_directories(Liggghts_VBP_VTKReader PRIVATE ${Python2_INCLUDE_DIRS})
   if (WIN32)

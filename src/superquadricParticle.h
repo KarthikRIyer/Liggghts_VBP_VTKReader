@@ -66,6 +66,8 @@ public:
 
     double getBottomZ() override;
 
+    double getMaxDimLength() override;
+
     double shapex = 0;
     double shapey = 0;
     double shapez = 0;

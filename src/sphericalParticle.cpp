@@ -15,3 +15,7 @@ double SphericalParticle::getTopZ() {
 double SphericalParticle::getBottomZ() {
     return z - radius;
 }
+
+double SphericalParticle::getMaxDimLength() {
+    return radius * 2.0;
+}
