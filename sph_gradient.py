@@ -43,13 +43,13 @@ rho_small = []
 rho_large = []
 
 for index in range(len(mass_array)):
-    mass = mass_array[index]
-    vx = vx_array[index]
-    vy = vy_array[index]
-    vz = vz_array[index]
-    x = x_array[index]
-    y = y_array[index]
-    z = z_array[index]
+    mass = mass_array[index].item()
+    vx = vx_array[index].item()
+    vy = vy_array[index].item()
+    vz = vz_array[index].item()
+    x = x_array[index].item()
+    y = y_array[index].item()
+    z = z_array[index].item()
     if mass == masses[0]:
         x_small.append(x)
         y_small.append(y)
@@ -71,10 +71,11 @@ for index in range(len(mass_array)):
     else:
         print("mass doesn't exist")
 
-p_small = get_particle_array(x=x_small, y=y_small, z=z_small, u=vx_small, v=vy_small,
+p_small = get_particle_array(name='p_small', x=x_small, y=y_small, z=z_small, u=vx_small,
+                             v=vy_small,
                              w=vz_small, m=m_small, rho=rho_small)
-p_small.set_output_arrays(['u', 'v', 'w', 'm'])
+# p_small.set_output_arrays(['u', 'v', 'w', 'm'])
 # print(p_small.get_property_arrays())
 # p_small
-interp = Interpolator(p_small.get_property_arrays(), num_points=len(mass_array) * 2)
+interp = Interpolator([p_small], num_points=len(mass_array)*2)
 # z_grad = interp.interpolate(prop='w', gradient=True)

@@ -57,8 +57,8 @@ else:
     #                           len(timesteps_list) * 10)
     #     plt.plot(fitline, fitmodel(fitline))
     y_pos = [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95]
-    plt.plot(binwise_xf_exp, y_pos, label='Experimental')
-    plt.plot(binwise_xf_sim, y_pos, label='Simulation')
+    plt.scatter(binwise_xf_exp, y_pos, label='Experimental')
+    plt.scatter(binwise_xf_sim, y_pos, label='Simulation')
     plt.legend(loc="upper right")
     plt.xlabel('Fine mass fraction (xi/xo)')
     plt.ylabel('Normalized axial position (y/h)')
@@ -66,3 +66,13 @@ else:
                 bbox_inches='tight')
     # print('Saved file' + filepath + '.png')
     plt.close('all')
+
+    abs_error = 0
+
+    for xf_exp, xf_sim in zip(binwise_xf_exp, binwise_xf_sim):
+        if xf_exp == 0:
+            continue
+        abs_error = abs(xf_sim-xf_exp)/xf_exp
+        # abs_error += 2 * ((xf_sim - xf_exp) / (abs(xf_exp) + abs(xf_sim)))
+    abs_error = abs_error / len(binwise_xf_exp)
+    print(abs_error * 100)

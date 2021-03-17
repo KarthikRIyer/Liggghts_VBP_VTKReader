@@ -34,8 +34,10 @@ def get_avg_vel(filepath):
     for line in lines:
         if line.find('AVERAGE VELOCITY') != -1:
             avg_v = float(line[line.rfind('=') + 2:])
-            ts = float(
-                filepath[filepath.rindex('dump') + 4:filepath.rindex('.vtk.vel')])
+            if 'superq' in filepath:
+                ts = float(filepath[filepath.rindex('dump') + 4:filepath.rindex('.superq.vtk.vel')])
+            else:
+                ts = float(filepath[filepath.rindex('dump') + 4:filepath.rindex('.vtk.vel')])    
         elif line.find('AVG VEL BIN X') != -1:
             words = line.split()
             avg_vel_bin_x.append(float(words[-1]))
