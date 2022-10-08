@@ -16,7 +16,7 @@ pip install numpy
 
 From root directory of the project:
 ```console
-git clone https://github.com/KarthikRIyer/Liggghts_VBP_VTKReader
+git clone --recurse-submodules https://github.com/KarthikRIyer/Liggghts_VBP_VTKReader
 cd Liggghts_VBP_VTKReader
 mkdir build
 cd build

@@ -506,9 +506,18 @@ int main(int argc, char *argv[]) {
             std::vector<double> x, y, z, u, v, w;
             double sum_vx, sum_vy, sum_vz;
             sum_vx = sum_vy = sum_vz = 0;
+            std::vector<std::vector<double>> velXByType(particleIndexVolumeMassMap.size(), std::vector<double>(2, 0));
+            std::vector<std::vector<double>> velYByType(particleIndexVolumeMassMap.size(), std::vector<double>(2, 0));
+            std::vector<std::vector<double>> velZByType(particleIndexVolumeMassMap.size(), std::vector<double>(2, 0));
+            std::vector<std::vector<double>> velXByTypeAbs(particleIndexVolumeMassMap.size(), std::vector<double>(2, 0));
+            std::vector<std::vector<double>> velYByTypeAbs(particleIndexVolumeMassMap.size(), std::vector<double>(2, 0));
+            std::vector<std::vector<double>> velZByTypeAbs(particleIndexVolumeMassMap.size(), std::vector<double>(2, 0));
             std::vector<std::vector<double>> velBinZ(particlesBin.size(), std::vector<double>(4, 0));
             std::vector<std::vector<double>> velBinX(particlesBin.size(), std::vector<double>(4, 0));
             std::vector<std::vector<double>> velBinY(particlesBin.size(), std::vector<double>(4, 0));
+//            std::vector<std::vector<double>> velBinZAbs(particlesBin.size(), std::vector<double>(4, 0));
+//            std::vector<std::vector<double>> velBinXAbs(particlesBin.size(), std::vector<double>(4, 0));
+//            std::vector<std::vector<double>> velBinYAbs(particlesBin.size(), std::vector<double>(4, 0));
             std::vector<std::vector<std::vector<double>>> velBinZByType(particleIndexVolumeMassMap.size(),
                                                                         std::vector<std::vector<double>>(
                                                                                 particlesBin.size(),
@@ -521,10 +530,36 @@ int main(int argc, char *argv[]) {
                                                                         std::vector<std::vector<double>>(
                                                                                 particlesBin.size(),
                                                                                 std::vector<double>(4, 0)));
+            std::vector<std::vector<std::vector<double>>> velBinZAbsByType(particleIndexVolumeMassMap.size(),
+                                                                        std::vector<std::vector<double>>(
+                                                                                particlesBin.size(),
+                                                                                std::vector<double>(4, 0)));
+            std::vector<std::vector<std::vector<double>>> velBinXAbsByType(particleIndexVolumeMassMap.size(),
+                                                                        std::vector<std::vector<double>>(
+                                                                                particlesBin.size(),
+                                                                                std::vector<double>(4, 0)));
+            std::vector<std::vector<std::vector<double>>> velBinYAbsByType(particleIndexVolumeMassMap.size(),
+                                                                        std::vector<std::vector<double>>(
+                                                                                particlesBin.size(),
+                                                                                std::vector<double>(4, 0)));
             for (auto &i : particleVector) {
                 sum_vx += i->vx;
                 sum_vy += i->vy;
                 sum_vz += i->vz;
+
+                velXByType[i->type][0] += i->vx;
+                velYByType[i->type][0] += i->vy;
+                velZByType[i->type][0] += i->vz;
+                velXByType[i->type][1] += 1;
+                velYByType[i->type][1] += 1;
+                velZByType[i->type][1] += 1;
+                velXByTypeAbs[i->type][0] += std::abs(i->vx);
+                velYByTypeAbs[i->type][0] += std::abs(i->vy);
+                velZByTypeAbs[i->type][0] += std::abs(i->vz);
+                velXByTypeAbs[i->type][1] += 1;
+                velYByTypeAbs[i->type][1] += 1;
+                velZByTypeAbs[i->type][1] += 1;
+
                 int vBin = clamp(getBin(bottomZ, i->z, zIncrement), 0, sliceCount - 1);
                 velBinZ[vBin][0] += i->vx;
                 velBinZ[vBin][1] += i->vy;
@@ -534,6 +569,14 @@ int main(int argc, char *argv[]) {
                 velBinZByType[i->type][vBin][1] += i->vy;
                 velBinZByType[i->type][vBin][2] += i->vz;
                 velBinZByType[i->type][vBin][3] += 1;
+//                velBinZAbs[vBin][0] += std::abs(i->vx);
+//                velBinZAbs[vBin][1] += std::abs(i->vy);
+//                velBinZAbs[vBin][2] += std::abs(i->vz);
+//                velBinZAbs[vBin][3] += 1;
+                velBinZAbsByType[i->type][vBin][0] += std::abs(i->vx);
+                velBinZAbsByType[i->type][vBin][1] += std::abs(i->vy);
+                velBinZAbsByType[i->type][vBin][2] += std::abs(i->vz);
+                velBinZAbsByType[i->type][vBin][3] += 1;
 
                 vBin = clamp(getBin(leftX, i->x, xIncrement), 0, sliceCount - 1);
                 velBinX[vBin][0] += i->vx;
@@ -544,6 +587,14 @@ int main(int argc, char *argv[]) {
                 velBinXByType[i->type][vBin][1] += i->vy;
                 velBinXByType[i->type][vBin][2] += i->vz;
                 velBinXByType[i->type][vBin][3] += 1;
+//                velBinXAbs[vBin][0] += std::abs(i->vx);
+//                velBinXAbs[vBin][1] += std::abs(i->vy);
+//                velBinXAbs[vBin][2] += std::abs(i->vz);
+//                velBinXAbs[vBin][3] += 1;
+                velBinXAbsByType[i->type][vBin][0] += std::abs(i->vx);
+                velBinXAbsByType[i->type][vBin][1] += std::abs(i->vy);
+                velBinXAbsByType[i->type][vBin][2] += std::abs(i->vz);
+                velBinXAbsByType[i->type][vBin][3] += 1;
 
                 vBin = clamp(getBin(backY, i->y, yIncrement), 0, sliceCount - 1);
                 velBinY[vBin][0] += i->vx;
@@ -554,6 +605,14 @@ int main(int argc, char *argv[]) {
                 velBinYByType[i->type][vBin][1] += i->vy;
                 velBinYByType[i->type][vBin][2] += i->vz;
                 velBinYByType[i->type][vBin][3] += 1;
+//                velBinYAbs[vBin][0] += std::abs(i->vx);
+//                velBinYAbs[vBin][1] += std::abs(i->vy);
+//                velBinYAbs[vBin][2] += std::abs(i->vz);
+//                velBinYAbs[vBin][3] += 1;
+                velBinYAbsByType[i->type][vBin][0] += std::abs(i->vx);
+                velBinYAbsByType[i->type][vBin][1] += std::abs(i->vy);
+                velBinYAbsByType[i->type][vBin][2] += std::abs(i->vz);
+                velBinYAbsByType[i->type][vBin][3] += 1;
 //                if (i->y <= 6.0 / 1000.0 && i->y >= -6.0 / 1000.0) {
                 x.push_back(i->x);
                 y.push_back(i->y);
@@ -571,8 +630,8 @@ int main(int argc, char *argv[]) {
                         sqrt(velBinX[i][0] * velBinX[i][0] + velBinX[i][1] * velBinX[i][1] +
                              velBinX[i][2] * velBinX[i][2]) /
                         velBinX[i][3];
-                postProcessedVelFile << "AVG VEL BIN X " << i << " " << v_avg << "\n";
-                postProcessedFile << "AVG VEL BIN X " << i << " " << v_avg << "\n";
+                postProcessedVelFile << "AVG VEL | BIN-X = "<< i <<" | VALUE = " << v_avg << "\n";
+                postProcessedFile << "AVG VEL | BIN-X = "<< i <<" | VALUE = " << v_avg << "\n";
             }
             postProcessedFile << "\n";
             for (int i = velBinY.size() - 1; i >= 0; i--) {
@@ -580,8 +639,8 @@ int main(int argc, char *argv[]) {
                         sqrt(velBinY[i][0] * velBinY[i][0] + velBinY[i][1] * velBinY[i][1] +
                              velBinY[i][2] * velBinY[i][2]) /
                         velBinY[i][3];
-                postProcessedVelFile << "AVG VEL BIN Y " << i << " " << v_avg << "\n";
-                postProcessedFile << "AVG VEL BIN Y " << i << " " << v_avg << "\n";
+                postProcessedVelFile << "AVG VEL | BIN-Y = "<< i <<" | VALUE = " << v_avg << "\n";
+                postProcessedFile << "AVG VEL | BIN-Y = "<< i <<" | VALUE = " << v_avg << "\n";
             }
             postProcessedFile << "\n";
             for (int i = velBinZ.size() - 1; i >= 0; i--) {
@@ -589,8 +648,8 @@ int main(int argc, char *argv[]) {
                         sqrt(velBinZ[i][0] * velBinZ[i][0] + velBinZ[i][1] * velBinZ[i][1] +
                              velBinZ[i][2] * velBinZ[i][2]) /
                         velBinZ[i][3];
-                postProcessedVelFile << "AVG VEL BIN Z " << i << " " << v_avg << "\n";
-                postProcessedFile << "AVG VEL BIN Z " << i << " " << v_avg << "\n";
+                postProcessedVelFile << "AVG VEL | BIN-Z = "<< i <<" | VALUE = " << v_avg << "\n";
+                postProcessedFile << "AVG VEL | BIN-Z = "<< i <<" | VALUE = " << v_avg << "\n";
             }
 
             postProcessedFile << "\n";
@@ -601,8 +660,9 @@ int main(int argc, char *argv[]) {
                                         velBinXByType[i][j][1] * velBinXByType[i][j][1] +
                                         velBinXByType[i][j][2] * velBinXByType[i][j][2]) /
                                    velBinXByType[i][j][3];
-                    postProcessedVelFile << "AVG VEL TYPE BIN X " << i << " " << j << " " << v_avg << "\n";
-                    postProcessedFile << "AVG VEL TYPE BIN X " << i << " " << j << " " << v_avg << "\n";
+                    postProcessedVelFile << "AVG VEL | TYPE = "<< i <<" | BIN-X = "<< j <<" | VALUE = " << v_avg << "\n";
+                    postProcessedFile << "AVG VEL | TYPE = "<< i <<" | BIN-X = "<< j <<" | VALUE = " << v_avg << "\n";
+
                 }
             }
             postProcessedFile << "\n";
@@ -613,8 +673,8 @@ int main(int argc, char *argv[]) {
                                         velBinYByType[i][j][1] * velBinYByType[i][j][1] +
                                         velBinYByType[i][j][2] * velBinYByType[i][j][2]) /
                                    velBinYByType[i][j][3];
-                    postProcessedVelFile << "AVG VEL TYPE BIN Y " << i << " " << j << " " << v_avg << "\n";
-                    postProcessedFile << "AVG VEL TYPE BIN Y " << i << " " << j << " " << v_avg << "\n";
+                    postProcessedVelFile << "AVG VEL | TYPE = "<< i <<" | BIN-Y = "<< j <<" | VALUE = " << v_avg << "\n";
+                    postProcessedFile << "AVG VEL | TYPE = "<< i <<" | BIN-Y = "<< j <<" | VALUE = " << v_avg << "\n";
                 }
             }
             postProcessedFile << "\n";
@@ -625,10 +685,80 @@ int main(int argc, char *argv[]) {
                                         velBinZByType[i][j][1] * velBinZByType[i][j][1] +
                                         velBinZByType[i][j][2] * velBinZByType[i][j][2]) /
                                    velBinZByType[i][j][3];
-                    postProcessedVelFile << "AVG VEL TYPE BIN Z " << i << " " << j << " " << v_avg << "\n";
-                    postProcessedFile << "AVG VEL TYPE BIN Z " << i << " " << j << " " << v_avg << "\n";
+                    postProcessedVelFile << "AVG VEL | TYPE = "<< i <<" | BIN-Z = "<< j <<" | VALUE = " << v_avg << "\n";
+                    postProcessedFile << "AVG VEL | TYPE = "<< i <<" | BIN-Z = "<< j <<" | VALUE = " << v_avg << "\n";
                 }
             }
+
+            // CONVECTION VELOCITY CALCULATION
+            postProcessedFile << "=================================================================\n";
+            std::vector<std::vector<std::vector<double>>> convectionVelocityBinXByType(velBinXByType.size(), std::vector<std::vector<double>>(velBinXByType[0].size(), std::vector<double>(3, 0)));
+            std::vector<std::vector<std::vector<double>>> convectionVelocityBinYByType(velBinXByType.size(), std::vector<std::vector<double>>(velBinYByType[0].size(), std::vector<double>(3, 0)));
+            std::vector<std::vector<std::vector<double>>> convectionVelocityBinZByType(velBinXByType.size(), std::vector<std::vector<double>>(velBinZByType[0].size(), std::vector<double>(3, 0)));
+            // bins along x
+            for (int i = velBinXByType.size()-1; i >=0 ; i--) {
+                for (int j = velBinXByType[i].size()-1; j >=0 ; j--) {
+                    convectionVelocityBinXByType[i][j][0] = (velBinXAbsByType[i][j][0] - std::abs(velBinXByType[i][j][0]))/velBinXByType[i][j][3];
+                    convectionVelocityBinXByType[i][j][1] = (velBinXAbsByType[i][j][1] - std::abs(velBinXByType[i][j][1]))/velBinXByType[i][j][3];
+                    convectionVelocityBinXByType[i][j][2] = (velBinXAbsByType[i][j][2] - std::abs(velBinXByType[i][j][2]))/velBinXByType[i][j][3];
+
+                    postProcessedFile << "CONVECTION VEL | TYPE = " << i << " | BIN-X = "<< j <<" | X-COMPONENT = " << convectionVelocityBinXByType[i][j][0] << "\n";
+                    postProcessedFile << "CONVECTION VEL | TYPE = " << i << " | BIN-X = "<< j <<" | Y-COMPONENT = " << convectionVelocityBinXByType[i][j][1] << "\n";
+                    postProcessedFile << "CONVECTION VEL | TYPE = " << i << " | BIN-X = "<< j <<" | Z-COMPONENT = " << convectionVelocityBinXByType[i][j][2] << "\n";
+                }
+                postProcessedFile << "\n";
+            }
+            postProcessedFile << "=================================================================\n";
+            // bins along y
+            for (int i = velBinYByType.size()-1; i >=0 ; i--) {
+                for (int j = velBinYByType[i].size()-1; j >=0 ; j--) {
+                    convectionVelocityBinYByType[i][j][0] = (velBinYAbsByType[i][j][0] - std::abs(velBinYByType[i][j][0]))/velBinYByType[i][j][3];
+                    convectionVelocityBinYByType[i][j][1] = (velBinYAbsByType[i][j][1] - std::abs(velBinYByType[i][j][1]))/velBinYByType[i][j][3];
+                    convectionVelocityBinYByType[i][j][2] = (velBinYAbsByType[i][j][2] - std::abs(velBinYByType[i][j][2]))/velBinYByType[i][j][3];
+
+                    postProcessedFile << "CONVECTION VEL | TYPE = " << i << " | BIN-Y = "<< j <<" | X-COMPONENT = " << convectionVelocityBinYByType[i][j][0] << "\n";
+                    postProcessedFile << "CONVECTION VEL | TYPE = " << i << " | BIN-Y = "<< j <<" | Y-COMPONENT = " << convectionVelocityBinYByType[i][j][1] << "\n";
+                    postProcessedFile << "CONVECTION VEL | TYPE = " << i << " | BIN-Y = "<< j <<" | Z-COMPONENT = " << convectionVelocityBinYByType[i][j][2] << "\n";
+                }
+                postProcessedFile << "\n";
+            }
+            postProcessedFile << "=================================================================\n";
+            // bins along z
+            for (int i = velBinZByType.size()-1; i >=0 ; i--) {
+                for (int j = velBinZByType[i].size()-1; j >=0 ; j--) {
+                    convectionVelocityBinZByType[i][j][0] = (velBinZAbsByType[i][j][0] - std::abs(velBinZByType[i][j][0]))/velBinZByType[i][j][3];
+                    convectionVelocityBinZByType[i][j][1] = (velBinZAbsByType[i][j][1] - std::abs(velBinZByType[i][j][1]))/velBinZByType[i][j][3];
+                    convectionVelocityBinZByType[i][j][2] = (velBinZAbsByType[i][j][2] - std::abs(velBinZByType[i][j][2]))/velBinZByType[i][j][3];
+
+                    postProcessedFile << "CONVECTION VEL | TYPE = " << i << " | BIN-Z = "<< j <<" | X-COMPONENT = " << convectionVelocityBinZByType[i][j][0] << "\n";
+                    postProcessedFile << "CONVECTION VEL | TYPE = " << i << " | BIN-Z = "<< j <<" | Y-COMPONENT = " << convectionVelocityBinZByType[i][j][1] << "\n";
+                    postProcessedFile << "CONVECTION VEL | TYPE = " << i << " | BIN-Z = "<< j <<" | Z-COMPONENT = " << convectionVelocityBinZByType[i][j][2] << "\n";
+                }
+                postProcessedFile << "\n";
+            }
+            postProcessedFile << "=================================================================\n\n";
+
+            std::vector<double> bulkXConvVelByType(velXByType.size(), 0);
+            std::vector<double> bulkYConvVelByType(velYByType.size(), 0);
+            std::vector<double> bulkZConvVelByType(velZByType.size(), 0);
+            for (int i = bulkXConvVelByType.size() - 1; i >= 0 ; i--) {
+                bulkXConvVelByType[i] = (velXByTypeAbs[i][0] - std::abs(velXByType[i][0])) / velXByTypeAbs[i][1];
+//                postProcessedFile << "BULK CONVECTION VEL | TYPE = "<< i <<" | X-COMPONENT = " << bulkXConvVelByType[i] << "\n";
+            }
+            for (int i = bulkYConvVelByType.size() - 1; i >= 0 ; i--) {
+                bulkYConvVelByType[i] = (velYByTypeAbs[i][0] - std::abs(velYByType[i][0])) / velYByTypeAbs[i][1];
+//                postProcessedFile << "BULK CONVECTION VEL | TYPE = "<< i <<" | Y-COMPONENT = " << bulkYConvVelByType[i] << "\n";
+            }
+            for (int i = bulkZConvVelByType.size() - 1; i >= 0 ; i--) {
+                bulkZConvVelByType[i] = (velZByTypeAbs[i][0] - std::abs(velZByType[i][0])) / velZByTypeAbs[i][1];
+//                postProcessedFile << "BULK CONVECTION VEL | TYPE = "<< i <<" | Z-COMPONENT = " << bulkZConvVelByType[i] << "\n";
+            }
+            for (int i = bulkXConvVelByType.size() - 1; i >= 0 ; i--) {
+                postProcessedFile << "BULK CONVECTION VEL | TYPE = "<< i <<" | X-COMPONENT = " << bulkXConvVelByType[i] << "\n";
+                postProcessedFile << "BULK CONVECTION VEL | TYPE = "<< i <<" | Y-COMPONENT = " << bulkYConvVelByType[i] << "\n";
+                postProcessedFile << "BULK CONVECTION VEL | TYPE = "<< i <<" | Z-COMPONENT = " << bulkZConvVelByType[i] << "\n";
+            }
+            postProcessedFile << "\n=================================================================\n\n";
 
             double v_avg = sqrt(sum_vx * sum_vx + sum_vy * sum_vy + sum_vz * sum_vz) / particleVector.size();
             postProcessedFile << "\nAVERAGE VELOCITY = " << v_avg << "\n";
