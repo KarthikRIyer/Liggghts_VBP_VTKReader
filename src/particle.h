@@ -7,6 +7,8 @@
 
 #define four_by_three_pi 4.18879020479
 
+#include "Eigen/Dense"
+
 class Particle {
 public:
 
@@ -22,6 +24,8 @@ public:
     virtual double volume();
 
     virtual double getMaxDimLength();
+
+    virtual Eigen::MatrixXd getQMatrix();
 
     double mass = 0;
     double vol = 0;

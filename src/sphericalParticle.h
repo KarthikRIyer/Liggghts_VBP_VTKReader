@@ -25,6 +25,8 @@ public:
     double getBottomZ() override;
 
     double getMaxDimLength() override;
+
+    Eigen::MatrixXd getQMatrix() override;
 };
 
 #endif //LIGGGHTS_VBP_VTKREADER_SPHERICALPARTICLE_H

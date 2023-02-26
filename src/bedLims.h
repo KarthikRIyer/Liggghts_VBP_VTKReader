@@ -34,6 +34,7 @@ std::vector<std::pair<double, double>> getBedLims(std::string filePath, bool isS
         vtkDoubleArray *quat2Data;
         vtkDoubleArray *quat3Data;
         vtkDoubleArray *quat4Data;
+        vtkDoubleArray *rotationMatrixData;
         if (isSuperQ) {
             shapeXData = vtkDoubleArray::SafeDownCast(pd->GetArray("shapex"));
             shapeYData = vtkDoubleArray::SafeDownCast(pd->GetArray("shapey"));
@@ -42,6 +43,7 @@ std::vector<std::pair<double, double>> getBedLims(std::string filePath, bool isS
             quat2Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat2"));
             quat3Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat3"));
             quat4Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat4"));
+            rotationMatrixData = vtkDoubleArray::SafeDownCast(pd->GetArray("TENSOR"));
         } else {
             radiusData = vtkDoubleArray::SafeDownCast(pd->GetArray("radius"));
         }
@@ -49,6 +51,7 @@ std::vector<std::pair<double, double>> getBedLims(std::string filePath, bool isS
         double radius;
         double shapex, shapey, shapez;
         double quat1, quat2, quat3, quat4;
+        double rotationMatrix[9];
 
         double p[3];
         double leftX = VTK_DOUBLE_MAX;
@@ -65,6 +68,7 @@ std::vector<std::pair<double, double>> getBedLims(std::string filePath, bool isS
                 shapex = shapeXData->GetValue(i);
                 shapey = shapeYData->GetValue(i);
                 shapez = shapeZData->GetValue(i);
+                rotationMatrixData->GetTupleValue(int(i), rotationMatrix);
                 if (quat1Data != nullptr) quat1 = quat1Data->GetValue(i);
                 else quat1 = 1;
                 if (quat2Data != nullptr) quat2 = quat2Data->GetValue(i);
@@ -73,8 +77,18 @@ std::vector<std::pair<double, double>> getBedLims(std::string filePath, bool isS
                 else quat3 = 0;
                 if (quat4Data != nullptr) quat4 = quat4Data->GetValue(i);
                 else quat4 = 0;
+                Eigen::MatrixXd rotMat(3,3);
+                rotMat(0,0) = rotationMatrix[0];
+                rotMat(0,1) = rotationMatrix[1];
+                rotMat(0,2) = rotationMatrix[2];
+                rotMat(1,0) = rotationMatrix[3];
+                rotMat(1,1) = rotationMatrix[4];
+                rotMat(1,2) = rotationMatrix[5];
+                rotMat(2,0) = rotationMatrix[6];
+                rotMat(2,1) = rotationMatrix[7];
+                rotMat(2,2) = rotationMatrix[8];
                 particlePtr = std::make_shared<SuperquadricParticle>(0, shapex, shapey, shapez, p[0], p[1], p[2],
-                                                                     quat1, quat2, quat3, quat4, 0,
+                                                                     quat1, quat2, quat3, quat4, rotMat, 0,
                                                                      0, 0);
             } else {
                 radius = radiusData->GetValue(i);

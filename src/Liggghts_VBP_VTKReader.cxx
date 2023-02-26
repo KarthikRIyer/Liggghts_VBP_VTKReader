@@ -267,6 +267,7 @@ int main(int argc, char *argv[]) {
             vtkDoubleArray *quat2Data;
             vtkDoubleArray *quat3Data;
             vtkDoubleArray *quat4Data;
+            vtkDoubleArray *rotationMatrixData;
             if (isSuperQ) {
                 shapeXData = vtkDoubleArray::SafeDownCast(pd->GetArray("shapex"));
                 shapeYData = vtkDoubleArray::SafeDownCast(pd->GetArray("shapey"));
@@ -275,6 +276,7 @@ int main(int argc, char *argv[]) {
                 quat2Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat2"));
                 quat3Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat3"));
                 quat4Data = vtkDoubleArray::SafeDownCast(pd->GetArray("quat4"));
+                rotationMatrixData = vtkDoubleArray::SafeDownCast(pd->GetArray("TENSOR"));
             } else {
                 radiusData = vtkDoubleArray::SafeDownCast(pd->GetArray("radius"));
             }
@@ -282,6 +284,7 @@ int main(int argc, char *argv[]) {
 
 
             double velocity[3];
+            double rotationMatrix[9];
             /*
             double omega[3];
             double force[3];
@@ -316,6 +319,7 @@ int main(int argc, char *argv[]) {
                     shapex = shapeXData->GetValue(i);
                     shapey = shapeYData->GetValue(i);
                     shapez = shapeZData->GetValue(i);
+                    rotationMatrixData->GetTupleValue(int(i), rotationMatrix);
                     if (quat1Data != nullptr) quat1 = quat1Data->GetValue(i);
                     else quat1 = 1;
                     if (quat2Data != nullptr) quat2 = quat2Data->GetValue(i);
@@ -324,8 +328,19 @@ int main(int argc, char *argv[]) {
                     else quat3 = 0;
                     if (quat4Data != nullptr) quat4 = quat4Data->GetValue(i);
                     else quat4 = 0;
+
+                    Eigen::MatrixXd rotMat(3,3);
+                    rotMat(0,0) = rotationMatrix[0];
+                    rotMat(0,1) = rotationMatrix[1];
+                    rotMat(0,2) = rotationMatrix[2];
+                    rotMat(1,0) = rotationMatrix[3];
+                    rotMat(1,1) = rotationMatrix[4];
+                    rotMat(1,2) = rotationMatrix[5];
+                    rotMat(2,0) = rotationMatrix[6];
+                    rotMat(2,1) = rotationMatrix[7];
+                    rotMat(2,2) = rotationMatrix[8];
                     particlePtr = std::make_shared<SuperquadricParticle>(mass, shapex, shapey, shapez, p[0], p[1], p[2],
-                                                                         quat1, quat2, quat3, quat4, velocity[0],
+                                                                         quat1, quat2, quat3, quat4, rotMat, velocity[0],
                                                                          velocity[1], velocity[2]);
                 } else {
                     radius = radiusData->GetValue(i);
@@ -496,7 +511,44 @@ int main(int argc, char *argv[]) {
             postProcessedFile << "\nSMI = " << SMI << "\n";
             //////////////////////////////////////////////////////////////////////////
             // S (order parameter calculation)
+//            std::map<std::pair<double, double>, int> particleVolumeMassIndexMap;
+//            std::map<int, std::pair<double, double>> particleIndexVolumeMassMap;
+//            int sliceCount = 10;
+//            std::vector<std::shared_ptr<Particle>> particleVector(output->GetNumberOfPoints(), nullptr);
+//            std::map<std::pair<double, double>, std::vector<std::shared_ptr<Particle>>> particleVolumeMassParticleMap
 
+            for (auto it = particleIndexVolumeMassMap.begin(); it != particleIndexVolumeMassMap.end(); it++) {
+                std::pair<double, double> volumeMassPair = it->second;
+                Eigen::MatrixXd Q(3, 3);
+                Q.setZero();
+                for (auto &particle: particleVolumeMassParticleMap[volumeMassPair]) {
+                    Q += particle->getQMatrix();
+                }
+                Q /= particleVolumeMassParticleMap[volumeMassPair].size();
+                Eigen::EigenSolver<Eigen::MatrixXd> eigenSolver(Q, false);
+                double maxEigenVal = std::numeric_limits<double>::min();
+                for (double ev: eigenSolver.eigenvalues().real()) {
+                    maxEigenVal = std::max(maxEigenVal, ev);
+                }
+                postProcessedFile <<"\nType "<<it->first<< "; S (order parameter)= " << maxEigenVal << "\n";
+            }
+
+            Eigen::MatrixXd Q(3,3);
+            Q.setZero();
+            for (auto &particle : particleVector) {
+                Q += particle->getQMatrix();
+            }
+            Q /= (particleVector.size());
+
+            Eigen::EigenSolver<Eigen::MatrixXd> eigenSolver(Q, false);
+//            postProcessedFile << "\n Q = " << Q << "\n";
+
+            double maxEigenVal = std::numeric_limits<double>::min();
+            for (double ev: eigenSolver.eigenvalues().real()) {
+                maxEigenVal = std::max(maxEigenVal, ev);
+            }
+//            postProcessedFile << "\neigen vals = " << eigenSolver.eigenvalues() << "\n";
+            postProcessedFile << "\nS (order parameter)= " << maxEigenVal << "\n";
 
             //////////////////////////////////////////////////////////////////////////
 

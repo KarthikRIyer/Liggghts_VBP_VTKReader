@@ -18,3 +18,7 @@ double SuperquadricParticle::getBottomZ() {
 double SuperquadricParticle::getMaxDimLength() {
     return 2.0 * std::fmax(shapex, std::fmax(shapey, shapez));
 }
+
+Eigen::MatrixXd SuperquadricParticle::getQMatrix() {
+    return q;
+}

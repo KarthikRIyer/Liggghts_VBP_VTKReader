@@ -19,3 +19,9 @@ double Particle::volume() {
 double Particle::getMaxDimLength() {
     return 0;
 }
+
+Eigen::MatrixXd Particle::getQMatrix() {
+    Eigen::MatrixXd m(3,3);
+    m.setZero();
+    return m;
+}
