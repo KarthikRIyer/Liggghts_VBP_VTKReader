@@ -9,6 +9,7 @@
 #include <map>
 #include <sys/stat.h>
 #include <algorithm>
+#include <Eigen/Dense>
 
 #ifdef _WIN32
 #include "dirent.h"
@@ -493,6 +494,10 @@ int main(int argc, char *argv[]) {
             }
             SMI /= double(totalParticles);
             postProcessedFile << "\nSMI = " << SMI << "\n";
+            //////////////////////////////////////////////////////////////////////////
+            // S (order parameter calculation)
+
+
             //////////////////////////////////////////////////////////////////////////
 
             // Plot fine fraction with distance

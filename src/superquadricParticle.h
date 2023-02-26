@@ -31,6 +31,18 @@ public:
         double b3 = 2.0 * (quat3 * quat4 + quat1 * quat2);
         double c3 = 1 - 2.0 * (quat2 * quat2 + quat3 * quat3);
 
+        this->q00 = (c1 * c1 - 1.0 / 3.0) * (3.0 / 2.0);
+        this->q01 = (c1 * c2) * (3.0 / 2.0);
+        this->q02 = (c1 * c3) * (3.0 / 2.0);
+
+        this->q10 = (c2 * c1) * (3.0 / 2.0);
+        this->q11 = (c2 * c2 - 1.0 / 3.0) * (3.0 / 2.0);
+        this->q12 = (c2 * c3) * (3.0 / 2.0);
+
+        this->q20 = (c3 * c1) * (3.0 / 2.0);
+        this->q21 = (c3 * c2) * (3.0 / 2.0);
+        this->q22 = (c3 * c3 - 1.0 / 3.0) * (3.0 / 2.0);
+
         double D = a1 * (b2 * c3 - c2 * b3) - b1 * (a2 * c3 - a3 * c2) + c1 * (a2 * b2 - a3 * b2);
         double one_by_D_squared = 1.0 / (D * D);
         double one_by_a_squared = 1.0 / (shapex * shapex);
@@ -78,6 +90,16 @@ public:
     double blockiness1 = 2;
     double blockiness2 = 2;
     double zDiff = 0;
+
+    double q00 =0; //Qij matrix to calculate order parameter S
+    double q01 =0;
+    double q02 =0;
+    double q10 =0;
+    double q11 =0;
+    double q12 =0;
+    double q20 =0;
+    double q21 =0;
+    double q22 =0;
 };
 
 #endif //LIGGGHTS_VBP_VTKREADER_SUPERQUADRICPARTICLE_H
